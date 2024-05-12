@@ -1,0 +1,20 @@
+{
+  "name": "pdf-merger",
+  "version": "1.0.0",
+  "description": "PDF Merger for private purposes",
+  "main": "index.js",
+  "scripts": {
+    "start": "node pdf-merger.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^9.2.0",
+    "eslint": "^9.2.0",
+    "globals": "^15.2.0"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}
