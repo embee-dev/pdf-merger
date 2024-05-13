@@ -1,3 +1,9 @@
+# Folder used for testing
+test-folder
+
+# Generated files
+generated
+
 # Logs
 logs
 *.log
