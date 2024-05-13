@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "args": ["c:\\teszt\\"],
+            "args": [".\\test-folder\\"],
             "program": "${workspaceFolder}\\pdf-merger.mjs"
         }
     ]

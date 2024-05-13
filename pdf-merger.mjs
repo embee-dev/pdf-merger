@@ -26,6 +26,9 @@ import { argv } from 'node:process'
 // program defaults
 const config = {
 
+    // generated files will go in this folder
+    outDir: 'generated',
+
     // default file extensions
     extensions: {
         json: '.json',
@@ -59,7 +62,8 @@ export function start() {
         path.extname(item).toLowerCase() === config.extensions.pdf
     )
 
-    fs.writeFileSync(tocObject.toc, JSON.stringify({...tocObject, files}), { flag: 'w' })
+    fs.mkdirSync(config.outDir, {recursive: true})
+    fs.writeFileSync(path.join(config.outDir, tocObject.toc), JSON.stringify({...tocObject, files}), { flag: 'w' })
     console.log(`${tocObject.toc} written`)
 }
 
