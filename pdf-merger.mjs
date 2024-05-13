@@ -19,4 +19,49 @@
 
 // import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 
-console.log('running')
+import fs from 'node:fs'
+import path from 'node:path'
+import { argv } from 'node:process'
+
+// program defaults
+const config = {
+
+    // default file extensions
+    extensions: {
+        json: '.json',
+        pdf: '.pdf'
+    }
+}
+
+// this object will be filled in with the appropiate data (filename, toc filename etc.)
+const tocObject = {
+    // name of the Table-Of-Contents file that will be used to determine the order of files
+    // defaults to "current directory".json
+    toc: '',
+
+    // name of the generated combined file
+    // defaults to "current directory".pdf
+    output: ''
+}
+
+export function start() {
+    // uses command line argument if given, or the current folder
+    const workingDirectory = argv?.[2] ?? '.'
+    const folderName = path.parse(workingDirectory).name
+    
+    tocObject.toc = folderName.concat(config.extensions.json)
+    tocObject.output = folderName.concat(config.extensions.pdf)
+
+    // reads all files in current directory and filters them (only allowed extensions according to config)
+    const files = fs.readdirSync(workingDirectory).filter(item =>
+        fs.lstatSync(path.join(workingDirectory, item)).isFile()
+        &&
+        path.extname(item).toLowerCase() === config.extensions.pdf
+    )
+
+    fs.writeFileSync(tocObject.toc, JSON.stringify({...tocObject, files}), { flag: 'w' })
+    console.log(`${tocObject.toc} written`)
+}
+
+start();
+
