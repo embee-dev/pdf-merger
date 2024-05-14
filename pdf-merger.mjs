@@ -24,75 +24,90 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { argv, exit } from 'node:process'
 
-// program messages
-const messages = {
-    DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
-    TARGET_DIR_CREATE_FAILED: 'Unable to create target folder (%s).\nPlease make sure the script has the necessary rights\nExiting now...' 
-}
+export class pdfMerger {
+    // program defaults
+    config = {
 
-// program defaults
-const config = {
-
-    // value used as space for JSON.stringify, when generating the TOC.json file
-    jsonSpace: 4,
-
-    // generated files will go in this folder
-    targetDir: 'generated',
-
-    // default file extensions
-    extensions: {
-        pdf: '.pdf'
-    }
-}
-
-// this object will be filled in with the appropiate data (filename, toc filename etc.)
-const tocObject = {
-    // name of the Table-Of-Contents file that will be used to determine the order of files
-    toc: 'TOC.json',
-
-    // name of the generated combined file
-    // defaults to "current directory".pdf
-    targetFile: ''
-}
-
-export function start() {
-    // uses command line argument if given, or the source folder
-    const sourceDirectory = argv?.[2] ?? '.'
-    let pdfFilesScanned
+        // value used as space for JSON.stringify, when generating the TOC.json file
+        jsonSpace: 4,
     
-    // file name will be based on the folder name of the source directory
-    tocObject.targetFile = (path.parse(sourceDirectory).name).concat(config.extensions.pdf)
+        // generated files will go in this folder
+        targetDir: 'generated',
+    
+        // default file extensions
+        extensions: {
+            pdf: '.pdf'
+        }
+    }
+    // program messages
+    messages = {
+        DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
+        TARGET_DIR_CREATE_FAILED: 'Unable to create target folder (%s).\nPlease make sure the script has the necessary rights\nExiting now...' 
+    }
+    // this object will be filled in with the appropiate data (filename, toc filename etc.)
+    tocObject = {
+        // name of the Table-Of-Contents file that will be used to determine the order of files
+        toc: 'TOC.json',
+    
+        // name of the generated combined file
+        // defaults to "current directory".pdf
+        targetFile: ''
+    }
+    sourceDirectory
+    pdfFilesScanned
+    
+    constructor() {
+        // uses command line argument if given, or the source folder
+        this.sourceDirectory = argv?.[2] ?? '.'
+        // file name will be based on the folder name of the source directory
+        this.tocObject.targetFile = (path.parse(this.sourceDirectory).name).concat(this.config.extensions.pdf)
+    }
 
     // reads all files in current directory and filters them (only allowed extensions according to config)
-    try {
-        pdfFilesScanned = fs.readdirSync(sourceDirectory).filter(item =>
-            fs.lstatSync(path.join(sourceDirectory, item)).isFile()
-            &&
-            path.extname(item).toLowerCase() === config.extensions.pdf
-        )
-    } catch (e) {
-        console.error(messages.DIR_NOT_EXISTS, sourceDirectory)
-        exit(1)
+    scanSourceDirectory() {
+        try {
+            this.pdfFilesScanned = fs.readdirSync(this.sourceDirectory).filter(item =>
+                fs.lstatSync(path.join(this.sourceDirectory, item)).isFile()
+                &&
+                path.extname(item).toLowerCase() === this.config.extensions.pdf
+            )
+        } catch (e) {
+            console.error(this.messages.DIR_NOT_EXISTS, this.sourceDirectory)
+            throw e
+        }
     }
 
     // create output directory if necessary
-    try {
-        fs.mkdirSync(config.targetDir, {recursive: true})
-    } catch (e) {
-        console.error(messages.TARGET_DIR_CREATE_FAILED, config.targetDir)
-        exit(1)
+    createTargetDirectory() {
+        try {
+            fs.mkdirSync(this.config.targetDir, {recursive: true})
+        } catch (e) {
+            console.error(this.messages.TARGET_DIR_CREATE_FAILED, this.config.targetDir)
+            throw e
+        }
     }
 
     // write TOC.json file
-    try {
-        fs.writeFileSync(path.join(config.targetDir, tocObject.toc), JSON.stringify({...tocObject, files: pdfFilesScanned}, null, config.jsonSpace), { flag: 'w' })        
-        console.info(`${tocObject.toc} written`)
-    } catch (e) {
-        console.error(messages.TARGET_FILE_WRITE_ERROR, tocObject.toc)
-        exit(1)   
+    writeTOCFile() {
+        try {
+            fs.writeFileSync(path.join(this.config.targetDir, this.tocObject.toc), JSON.stringify({...this.tocObject, files: this.pdfFilesScanned}, null, this.config.jsonSpace), { flag: 'w' })
+            console.info(`${this.tocObject.toc} written`)
+        } catch (e) {
+            console.error(this.messages.TARGET_FILE_WRITE_ERROR, this.tocObject.toc)
+            throw e
+        }
     }
-    
 
+    start() {
+        try {
+            this.scanSourceDirectory()
+            this.createTargetDirectory()
+            this.writeTOCFile()
+        } catch (e) {
+            exit(1)
+        }
+    }
 }
 
-start();
+let myPdfMerger = new pdfMerger();
+myPdfMerger.start()
