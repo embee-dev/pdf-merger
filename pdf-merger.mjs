@@ -21,7 +21,12 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { argv } from 'node:process'
+import { argv, exit } from 'node:process'
+
+// program messages
+const messages = {
+    DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...'
+}
 
 // program defaults
 const config = {
@@ -52,22 +57,29 @@ export function start() {
     // uses command line argument if given, or the current folder
     const workingDirectory = argv?.[2] ?? '.'
     const folderName = path.parse(workingDirectory).name
+    let pdfFilesScanned
     
     // file name will be based on the folder name of the current directory
     tocObject.output = folderName.concat(config.extensions.pdf)
 
     // reads all files in current directory and filters them (only allowed extensions according to config)
-    const files = fs.readdirSync(workingDirectory).filter(item =>
-        fs.lstatSync(path.join(workingDirectory, item)).isFile()
-        &&
-        path.extname(item).toLowerCase() === config.extensions.pdf
-    )
+    try {
+        pdfFilesScanned = fs.readdirSync(workingDirectory).filter(item =>
+            fs.lstatSync(path.join(workingDirectory, item)).isFile()
+            &&
+            path.extname(item).toLowerCase() === config.extensions.pdf
+        )
+    } catch (e) {
+        console.error(messages.DIR_NOT_EXISTS, workingDirectory)
+        exit()
+    }
+    
 
     // create output directory if necessary
     fs.mkdirSync(config.outDir, {recursive: true})
 
     // write TOC.json file
-    fs.writeFileSync(path.join(config.outDir, tocObject.toc), JSON.stringify({...tocObject, files}, null, config.jsonSpace), { flag: 'w' })
+    fs.writeFileSync(path.join(config.outDir, tocObject.toc), JSON.stringify({...tocObject, files: pdfFilesScanned}, null, config.jsonSpace), { flag: 'w' })
     console.log(`${tocObject.toc} written`)
 }
 
