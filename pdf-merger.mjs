@@ -2,6 +2,7 @@
 /*
 * USER PATH
 * + program starts, uses the directory provided as a command line argument
+* + check if working directory is available, exits if no
 * - checks if a TOC.json is available in the working directory
 * - if yes, alerts the user and skips the reading/JSON writing parts, goes straight to user prompt
 @TODO handle/read/process existing TOC.json file
@@ -25,7 +26,8 @@ import { argv, exit } from 'node:process'
 
 // program messages
 const messages = {
-    DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...'
+    DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
+    TARGET_DIR_CREATE_FAILED: 'Unable to create target folder (%s).\nPlease make sure the script has the necessary rights\nExiting now...' 
 }
 
 // program defaults
@@ -35,7 +37,7 @@ const config = {
     jsonSpace: 4,
 
     // generated files will go in this folder
-    outDir: 'generated',
+    targetDir: 'generated',
 
     // default file extensions
     extensions: {
@@ -50,38 +52,47 @@ const tocObject = {
 
     // name of the generated combined file
     // defaults to "current directory".pdf
-    output: ''
+    targetFile: ''
 }
 
 export function start() {
-    // uses command line argument if given, or the current folder
-    const workingDirectory = argv?.[2] ?? '.'
-    const folderName = path.parse(workingDirectory).name
+    // uses command line argument if given, or the source folder
+    const sourceDirectory = argv?.[2] ?? '.'
     let pdfFilesScanned
     
-    // file name will be based on the folder name of the current directory
-    tocObject.output = folderName.concat(config.extensions.pdf)
+    // file name will be based on the folder name of the source directory
+    tocObject.targetFile = (path.parse(sourceDirectory).name).concat(config.extensions.pdf)
 
     // reads all files in current directory and filters them (only allowed extensions according to config)
     try {
-        pdfFilesScanned = fs.readdirSync(workingDirectory).filter(item =>
-            fs.lstatSync(path.join(workingDirectory, item)).isFile()
+        pdfFilesScanned = fs.readdirSync(sourceDirectory).filter(item =>
+            fs.lstatSync(path.join(sourceDirectory, item)).isFile()
             &&
             path.extname(item).toLowerCase() === config.extensions.pdf
         )
     } catch (e) {
-        console.error(messages.DIR_NOT_EXISTS, workingDirectory)
-        exit()
+        console.error(messages.DIR_NOT_EXISTS, sourceDirectory)
+        exit(1)
+    }
+
+    // create output directory if necessary
+    try {
+        fs.mkdirSync(config.targetDir, {recursive: true})
+    } catch (e) {
+        console.error(messages.TARGET_DIR_CREATE_FAILED, config.targetDir)
+        exit(1)
+    }
+
+    // write TOC.json file
+    try {
+        fs.writeFileSync(path.join(config.targetDir, tocObject.toc), JSON.stringify({...tocObject, files: pdfFilesScanned}, null, config.jsonSpace), { flag: 'w' })        
+        console.info(`${tocObject.toc} written`)
+    } catch (e) {
+        console.error(messages.TARGET_FILE_WRITE_ERROR, tocObject.toc)
+        exit(1)   
     }
     
 
-    // create output directory if necessary
-    fs.mkdirSync(config.outDir, {recursive: true})
-
-    // write TOC.json file
-    fs.writeFileSync(path.join(config.outDir, tocObject.toc), JSON.stringify({...tocObject, files: pdfFilesScanned}, null, config.jsonSpace), { flag: 'w' })
-    console.log(`${tocObject.toc} written`)
 }
 
 start();
-
