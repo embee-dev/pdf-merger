@@ -26,7 +26,7 @@ import { argv, exit } from 'node:process'
 
 export class pdfMerger {
     // program defaults
-    config = {
+    #config = {
 
         // value used as space for JSON.stringify, when generating the TOC.json file
         jsonSpace: 4,
@@ -40,12 +40,12 @@ export class pdfMerger {
         }
     }
     // program messages
-    messages = {
+    #messages = {
         DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
-        TARGET_DIR_CREATE_FAILED: 'Unable to create target folder (%s).\nPlease make sure the script has the necessary rights\nExiting now...' 
+        ACCESS_ERROR: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...' 
     }
     // this object will be filled in with the appropiate data (filename, toc filename etc.)
-    tocObject = {
+    #tocObject = {
         // name of the Table-Of-Contents file that will be used to determine the order of files
         toc: 'TOC.json',
     
@@ -53,57 +53,58 @@ export class pdfMerger {
         // defaults to "current directory".pdf
         targetFile: ''
     }
-    sourceDirectory
-    pdfFilesScanned
+    #sourceDirectory
+    #pdfFilesScanned
     
     constructor() {
         // uses command line argument if given, or the source folder
-        this.sourceDirectory = argv?.[2] ?? '.'
+        this.#sourceDirectory = argv?.[2] ?? '.'
+
         // file name will be based on the folder name of the source directory
-        this.tocObject.targetFile = (path.parse(this.sourceDirectory).name).concat(this.config.extensions.pdf)
+        this.#tocObject.targetFile = (path.parse(this.#sourceDirectory).name).concat(this.#config.extensions.pdf)
     }
 
     // reads all files in current directory and filters them (only allowed extensions according to config)
-    scanSourceDirectory() {
-        try {
-            this.pdfFilesScanned = fs.readdirSync(this.sourceDirectory).filter(item =>
-                fs.lstatSync(path.join(this.sourceDirectory, item)).isFile()
-                &&
-                path.extname(item).toLowerCase() === this.config.extensions.pdf
-            )
-        } catch (e) {
-            console.error(this.messages.DIR_NOT_EXISTS, this.sourceDirectory)
-            throw e
-        }
+    #getPDFFilesFromSourceDirectory() {
+        this.#pdfFilesScanned = fs.readdirSync(this.#sourceDirectory).filter(item =>
+            fs.lstatSync(path.join(this.#sourceDirectory, item)).isFile()
+            &&
+            path.extname(item).toLowerCase() === this.#config.extensions.pdf
+        )
     }
 
     // create output directory if necessary
-    createTargetDirectory() {
-        try {
-            fs.mkdirSync(this.config.targetDir, {recursive: true})
-        } catch (e) {
-            console.error(this.messages.TARGET_DIR_CREATE_FAILED, this.config.targetDir)
-            throw e
-        }
+    #createTargetDirectory() {
+        fs.mkdirSync(this.#config.targetDir, {recursive: true})
     }
 
     // write TOC.json file
-    writeTOCFile() {
-        try {
-            fs.writeFileSync(path.join(this.config.targetDir, this.tocObject.toc), JSON.stringify({...this.tocObject, files: this.pdfFilesScanned}, null, this.config.jsonSpace), { flag: 'w' })
-            console.info(`${this.tocObject.toc} written`)
-        } catch (e) {
-            console.error(this.messages.TARGET_FILE_WRITE_ERROR, this.tocObject.toc)
-            throw e
+    #writeTOCFile() {
+        fs.writeFileSync(path.join(this.#config.targetDir, this.#tocObject.toc), JSON.stringify({...this.#tocObject, files: this.#pdfFilesScanned}, null, this.#config.jsonSpace), { flag: 'w' })
+        console.info(`${this.#tocObject.toc} written`)
+    }
+
+    // prints various messages in case of any errors
+    #printErrorMessage(error) {
+        switch (error.code) {
+            case 'ENOENT':
+                console.error(this.#messages.DIR_NOT_EXISTS, this.#sourceDirectory)
+                break
+            case 'EACCES':
+                console.error(this.#messages.ACCESS_ERROR)
+                break
+            default:
+                break
         }
     }
 
     start() {
         try {
-            this.scanSourceDirectory()
-            this.createTargetDirectory()
-            this.writeTOCFile()
+            this.#getPDFFilesFromSourceDirectory()
+            this.#createTargetDirectory()
+            this.#writeTOCFile()
         } catch (e) {
+            this.#printErrorMessage(e)
             exit(1)
         }
     }
