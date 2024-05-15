@@ -1,6 +1,7 @@
 {
   "name": "pdf-merger",
   "version": "1.0.0",
+  "type": "module",
   "description": "PDF Merger for private purposes",
   "main": "index.js",
   "scripts": {
@@ -16,5 +17,8 @@
   },
   "dependencies": {
     "pdf-lib": "^1.17.1"
+  },
+  "bin": {
+    "pdf-merger": "./bin/cli.js"
   }
 }

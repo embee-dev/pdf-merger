@@ -22,7 +22,7 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
-import { argv, exit } from 'node:process'
+import { exit } from 'node:process'
 
 export class pdfMerger {
     // program defaults
@@ -56,9 +56,11 @@ export class pdfMerger {
     #sourceDirectory
     #pdfFilesScanned
     
-    constructor() {
+    constructor(sourceDirectory) {
         // uses command line argument if given, or the source folder
-        this.#sourceDirectory = argv?.[2] ?? '.'
+        this.#sourceDirectory = sourceDirectory
+
+        console.log(`sourceDirectory is: ${this.#sourceDirectory}`)
 
         // file name will be based on the folder name of the source directory
         this.#tocObject.targetFile = (path.parse(this.#sourceDirectory).name).concat(this.#config.extensions.pdf)
@@ -109,6 +111,3 @@ export class pdfMerger {
         }
     }
 }
-
-let myPdfMerger = new pdfMerger();
-myPdfMerger.start()
