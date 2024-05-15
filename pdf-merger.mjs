@@ -1,4 +1,3 @@
-"use strict"
 /*
 * USER PATH
 * + program starts, uses the directory provided as a command line argument
@@ -25,6 +24,7 @@ import path from 'node:path'
 import { exit } from 'node:process'
 
 export class pdfMerger {
+
     // program defaults
     #config = {
 
@@ -39,11 +39,13 @@ export class pdfMerger {
             pdf: '.pdf'
         }
     }
+
     // program messages
     #messages = {
         DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
         ACCESS_ERROR: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...' 
     }
+
     // this object will be filled in with the appropiate data (filename, toc filename etc.)
     #tocObject = {
         // name of the Table-Of-Contents file that will be used to determine the order of files
@@ -53,7 +55,11 @@ export class pdfMerger {
         // defaults to "current directory".pdf
         targetFile: ''
     }
+
+    // path of the source directory
     #sourceDirectory
+
+    // container for the list of PDF files scanned in the source directory
     #pdfFilesScanned
     
     constructor(sourceDirectory) {
@@ -100,6 +106,7 @@ export class pdfMerger {
         }
     }
 
+    // the main program starts here
     start() {
         try {
             this.#getPDFFilesFromSourceDirectory()
