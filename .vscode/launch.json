@@ -12,7 +12,7 @@
                 "<node_internals>/**"
             ],
             "args": [".\\test-folder\\"],
-            "program": "${workspaceFolder}\\pdf-merger.mjs"
+            "program": "${workspaceFolder}\\bin\\cli.js"
         }
     ]
 }
