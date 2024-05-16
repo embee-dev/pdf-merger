@@ -19,7 +19,7 @@
 
 // import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 
-import fs from 'node:fs'
+import fs, { accessSync, constants, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { exit } from 'node:process'
 
@@ -42,6 +42,7 @@ export class pdfMerger {
 
     // program messages
     #messages = {
+        TOC_FILE_CHECK_ERROR: 'Checking any existing TOC file was unsuccessful. Will be creating a new TOC file.',
         DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
         ACCESS_ERROR: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...' 
     }
@@ -49,12 +50,19 @@ export class pdfMerger {
     // this object will be filled in with the appropiate data (filename, toc filename etc.)
     #tocObject = {
         // name of the Table-Of-Contents file that will be used to determine the order of files
-        toc: 'TOC.json',
+        tocFileName: 'TOC.json',
     
         // name of the generated combined file
         // defaults to "current directory".pdf
         targetFile: ''
     }
+
+    get #TOCFilePath() {
+        return path.join(this.#config.targetDir, this.#tocObject.tocFileName)
+    }
+
+    // existing TOC file that can be used if available
+    #existingTOCFileContent
 
     // path of the source directory
     #sourceDirectory
@@ -81,6 +89,11 @@ export class pdfMerger {
         )
     }
 
+    #checkAndReadExistingTOCFile() {
+        accessSync(this.#TOCFilePath, constants.R_OK | constants.W_OK)
+        return JSON.parse(readFileSync(this.#TOCFilePath, 'utf-8'))
+    }
+
     // create output directory if necessary
     #createTargetDirectory() {
         fs.mkdirSync(this.#config.targetDir, {recursive: true})
@@ -88,33 +101,66 @@ export class pdfMerger {
 
     // write TOC.json file
     #writeTOCFile() {
-        fs.writeFileSync(path.join(this.#config.targetDir, this.#tocObject.toc), JSON.stringify({...this.#tocObject, files: this.#pdfFilesScanned}, null, this.#config.jsonSpace), { flag: 'w' })
-        console.info(`${this.#tocObject.toc} written`)
+        fs.writeFileSync(this.#TOCFilePath, JSON.stringify({...this.#tocObject, files: this.#pdfFilesScanned}, null, this.#config.jsonSpace), { flag: 'w' })
+        console.info(`${this.#tocObject.tocFileName} written`)
     }
 
     // prints various messages in case of any errors
-    #printErrorMessage(error) {
-        switch (error.code) {
-            case 'ENOENT':
-                console.error(this.#messages.DIR_NOT_EXISTS, this.#sourceDirectory)
+    #errorHandler(error, errorLocation, terminate = false) {
+        switch (errorLocation) {
+            case 'TOC_FILE_CHECK':
+                switch (error.code) {
+                    case 'ENOENT':
+                        console.info(this.#messages.TOC_FILE_CHECK_ERROR)
+                        break
+                    default:
+                        break
+                }
                 break
-            case 'EACCES':
-                console.error(this.#messages.ACCESS_ERROR)
+            case 'TARGET_FOLDER':
+                switch (error.code) {
+                    case 'ENOENT':
+                        console.error(this.#messages.DIR_NOT_EXISTS, this.#sourceDirectory)
+                        break
+                    case 'EACCES':
+                        console.error(this.#messages.ACCESS_ERROR)
+                        break
+                    default:
+                        break
+                }
                 break
             default:
                 break
+        }
+        if (terminate) {
+            exit(1)
         }
     }
 
     // the main program starts here
     start() {
+        
+        // check for any existing TOC files,
+        // if available, read its contents
         try {
-            this.#getPDFFilesFromSourceDirectory()
-            this.#createTargetDirectory()
-            this.#writeTOCFile()
+            this.#existingTOCFileContent = this.#checkAndReadExistingTOCFile()    
         } catch (e) {
-            this.#printErrorMessage(e)
-            exit(1)
+            this.#errorHandler(e, 'TOC_FILE_CHECK', false)
+        }
+        
+
+        if (this.#existingTOCFileContent?.files) {
+            console.info('TOC file exists, here are the contents:')
+            console.info(this.#existingTOCFileContent)
+        } else {
+            try {
+                this.#createTargetDirectory()
+                this.#getPDFFilesFromSourceDirectory()
+                this.#writeTOCFile()    
+            } catch (e) {
+                this.#errorHandler(e, 'TARGET_FOLDER', true)
+            }
+            
         }
     }
 }
