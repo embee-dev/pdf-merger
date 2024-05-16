@@ -19,7 +19,7 @@
 
 // import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 
-import fs, { accessSync, constants, readFileSync } from 'node:fs'
+import fs, { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { exit } from 'node:process'
 
