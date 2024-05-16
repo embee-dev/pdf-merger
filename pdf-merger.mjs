@@ -22,6 +22,7 @@
 import fs, { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { exit } from 'node:process'
+import { PDFDocument } from 'pdf-lib'
 
 export class pdfMerger {
 
@@ -55,7 +56,9 @@ export class pdfMerger {
     
         // name of the generated combined file
         // defaults to "current directory".pdf
-        targetFile: ''
+        targetFile: '',
+
+        files: []
     }
 
     get #TOCFilePath() {
@@ -67,9 +70,6 @@ export class pdfMerger {
 
     // path of the source directory
     #sourceDirectory
-
-    // container for the list of PDF files scanned in the source directory
-    #pdfFilesScanned
     
     constructor(sourceDirectory) {
         // uses command line argument if given, or the source folder
@@ -172,6 +172,19 @@ export class pdfMerger {
         }
     }
 
+    async #mergeAndSavePDF(TOCObject) {
+        const mergedPDF = await PDFDocument.create();
+
+        for (let pdfFile of TOCObject.files) {
+            const pdfContent = await PDFDocument.load(fs.readFileSync(path.join(this.#sourceDirectory, pdfFile)));
+            const pdfPages = await mergedPDF.copyPages(pdfContent, pdfContent.getPageIndices());
+            pdfPages.forEach((page) => mergedPDF.addPage(page));
+        }
+
+        const mergedPDFBytes = await mergedPDF.save();
+        fs.writeFileSync(path.join(this.#config.targetDir, TOCObject.targetFile), mergedPDFBytes, { flag: 'w' })
+    }
+
     // the main program starts here
     start() {
         
@@ -180,25 +193,31 @@ export class pdfMerger {
         try {
             this.#existingTOCFileContent = this.#checkAndReadExistingTOCFile(this.#TOCFilePath)
         } catch (e) { this.#errorHandler(e, 'TOC_FILE_CHECK', false) }
-
-        // filtering existing file contents, wiping out any invalid files
-        this.#existingTOCFileContent = this.#filterExistingTOCFile(this.#existingTOCFileContent)
         
         // if there was an existing TOC file, write it back after filtering
         if (this.#existingTOCFileContent?.files) {
-            console.info('TOC file exists, here are the contents:')
-            console.info(this.#existingTOCFileContent)
-            console.info('writing it back to the disk after filtering')
+            // filtering existing file contents, wiping out any invalid files
+            this.#existingTOCFileContent = this.#filterExistingTOCFile(this.#existingTOCFileContent)
             this.#writeTOCFile(this.#existingTOCFileContent)
+            this.#tocObject = this.#existingTOCFileContent
         } else {
             try {
                 this.#createTargetDirectory()
-                this.#pdfFilesScanned = this.#getPDFFilesFromSourceDirectory(this.#sourceDirectory)
-                this.#writeTOCFile({...this.#tocObject, files: this.#pdfFilesScanned})
+                this.#tocObject.files = this.#getPDFFilesFromSourceDirectory(this.#sourceDirectory)
+                this.#writeTOCFile(this.#tocObject)
             } catch (e) {
                 this.#errorHandler(e, 'TARGET_FOLDER', true)
             }
             
         }
+
+        // do real work
+        // see https://github.com/Hopding/pdf-lib/issues/252#issuecomment-566063380
+        try {
+            this.#mergeAndSavePDF(this.#tocObject)
+        } catch (e) {
+            this.#errorHandler(e, 'MERGE_PDFS', true)
+        }
+        
     }
 }
