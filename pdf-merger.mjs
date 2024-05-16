@@ -44,7 +44,7 @@ export class pdfMerger {
     #messages = {
         TOC_FILE_CHECK_ERROR: 'Checking any existing TOC file was unsuccessful. Will be creating a new TOC file.',
         DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
-        ACCESS_ERROR: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...' 
+        ACCESS_ERROR: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...'
     }
 
     // this object will be filled in with the appropiate data (filename, toc filename etc.)
@@ -143,7 +143,7 @@ export class pdfMerger {
         // check for any existing TOC files,
         // if available, read its contents
         try {
-            this.#existingTOCFileContent = this.#checkAndReadExistingTOCFile()    
+            this.#existingTOCFileContent = this.#checkAndReadExistingTOCFile()
         } catch (e) {
             this.#errorHandler(e, 'TOC_FILE_CHECK', false)
         }
@@ -156,7 +156,7 @@ export class pdfMerger {
             try {
                 this.#createTargetDirectory()
                 this.#getPDFFilesFromSourceDirectory()
-                this.#writeTOCFile()    
+                this.#writeTOCFile()
             } catch (e) {
                 this.#errorHandler(e, 'TARGET_FOLDER', true)
             }
