@@ -43,6 +43,7 @@ export class pdfMerger {
     // program messages
     #messages = {
         TOC_FILE_CHECK_ERROR: 'Checking any existing TOC file was unsuccessful. Will be creating a new TOC file.',
+        TOC_FILE_FILTER_ERROR: 'There was an error looking for file "%s". Removing it from the list.',
         DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
         ACCESS_ERROR: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...'
     }
@@ -81,17 +82,42 @@ export class pdfMerger {
     }
 
     // reads all files in current directory and filters them (only allowed extensions according to config)
-    #getPDFFilesFromSourceDirectory() {
-        this.#pdfFilesScanned = fs.readdirSync(this.#sourceDirectory).filter(item =>
-            fs.lstatSync(path.join(this.#sourceDirectory, item)).isFile()
+    #getPDFFilesFromSourceDirectory(sourceDirectory) {
+        return fs.readdirSync(sourceDirectory).filter(item =>
+            fs.lstatSync(path.join(sourceDirectory, item)).isFile()
             &&
             path.extname(item).toLowerCase() === this.#config.extensions.pdf
         )
     }
 
-    #checkAndReadExistingTOCFile() {
-        accessSync(this.#TOCFilePath, constants.R_OK | constants.W_OK)
-        return JSON.parse(readFileSync(this.#TOCFilePath, 'utf-8'))
+    // check and read any existing TOC file
+    // returns the parsed content
+    #checkAndReadExistingTOCFile(filePath) {
+        return (
+            fs.lstatSync(filePath).isFile()
+            ? JSON.parse(readFileSync(filePath, 'utf-8'))
+            : null
+        )
+    }
+
+    // go through the existing TOC file and remove any file entries
+    // that are not in the source directory at the time of scanning
+    #filterExistingTOCFile(fileContent) {
+        let filteredFiles = { ...fileContent }
+        if (fileContent && fileContent?.files && fileContent.files?.length) {
+            filteredFiles.files = fileContent.files.filter((item) => {
+                let fileExists = false
+                console.log(`filtering files, checking: ${item}`)
+                try {
+                    fileExists = fs.lstatSync(path.join(this.#sourceDirectory, item)).isFile()
+                } catch (e) {
+                    this.#errorHandler(e, 'TOC_FILE_FILTER', false, { missingFile: item })
+                }
+                console.log(`${fileExists ? 'item exists, leaving it in' : 'item not exists, removing'}`)
+                return fileExists
+            })
+        }
+        return filteredFiles
     }
 
     // create output directory if necessary
@@ -100,18 +126,27 @@ export class pdfMerger {
     }
 
     // write TOC.json file
-    #writeTOCFile() {
-        fs.writeFileSync(this.#TOCFilePath, JSON.stringify({...this.#tocObject, files: this.#pdfFilesScanned}, null, this.#config.jsonSpace), { flag: 'w' })
+    #writeTOCFile(fileObject) {
+        fs.writeFileSync(this.#TOCFilePath, JSON.stringify(fileObject, null, this.#config.jsonSpace), { flag: 'w' })
         console.info(`${this.#tocObject.tocFileName} written`)
     }
 
     // prints various messages in case of any errors
-    #errorHandler(error, errorLocation, terminate = false) {
+    #errorHandler(error, errorLocation, terminate = false, params = {}) {
         switch (errorLocation) {
             case 'TOC_FILE_CHECK':
                 switch (error.code) {
                     case 'ENOENT':
                         console.info(this.#messages.TOC_FILE_CHECK_ERROR)
+                        break
+                    default:
+                        break
+                }
+                break
+            case 'TOC_FILE_FILTER':
+                switch (error.code) {
+                    case 'ENOENT':
+                        console.info(this.#messages.TOC_FILE_FILTER_ERROR, params.missingFile)
                         break
                     default:
                         break
@@ -143,20 +178,23 @@ export class pdfMerger {
         // check for any existing TOC files,
         // if available, read its contents
         try {
-            this.#existingTOCFileContent = this.#checkAndReadExistingTOCFile()
-        } catch (e) {
-            this.#errorHandler(e, 'TOC_FILE_CHECK', false)
-        }
-        
+            this.#existingTOCFileContent = this.#checkAndReadExistingTOCFile(this.#TOCFilePath)
+        } catch (e) { this.#errorHandler(e, 'TOC_FILE_CHECK', false) }
 
+        // filtering existing file contents, wiping out any invalid files
+        this.#existingTOCFileContent = this.#filterExistingTOCFile(this.#existingTOCFileContent)
+        
+        // if there was an existing TOC file, write it back after filtering
         if (this.#existingTOCFileContent?.files) {
             console.info('TOC file exists, here are the contents:')
             console.info(this.#existingTOCFileContent)
+            console.info('writing it back to the disk after filtering')
+            this.#writeTOCFile(this.#existingTOCFileContent)
         } else {
             try {
                 this.#createTargetDirectory()
-                this.#getPDFFilesFromSourceDirectory()
-                this.#writeTOCFile()
+                this.#pdfFilesScanned = this.#getPDFFilesFromSourceDirectory(this.#sourceDirectory)
+                this.#writeTOCFile({...this.#tocObject, files: this.#pdfFilesScanned})
             } catch (e) {
                 this.#errorHandler(e, 'TARGET_FOLDER', true)
             }
