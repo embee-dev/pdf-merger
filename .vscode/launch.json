@@ -11,7 +11,7 @@
             "skipFiles": [
                 "<node_internals>/**"
             ],
-            "args": [".\\test-folder\\"],
+            "args": ["${workspaceFolder}\\test-folder\\"],
             "program": "${workspaceFolder}\\bin\\cli.js"
         }
     ]
