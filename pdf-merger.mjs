@@ -73,7 +73,7 @@ export class pdfMerger {
     
     constructor(sourceDirectory) {
         // uses command line argument if given, or the source folder
-        this.#sourceDirectory = sourceDirectory
+        this.#sourceDirectory = path.resolve(sourceDirectory)
 
         console.log(`sourceDirectory is: ${this.#sourceDirectory}`)
 
