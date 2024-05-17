@@ -16,6 +16,7 @@
     "globals": "^15.2.0"
   },
   "dependencies": {
+    "argparse": "^2.0.1",
     "pdf-lib": "^1.17.1",
     "readline-sync": "^1.4.10"
   },
