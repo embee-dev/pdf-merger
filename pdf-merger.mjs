@@ -1,28 +1,8 @@
-/*
-* USER PATH
-* + program starts, uses the directory provided as a command line argument
-* + check if working directory is available, exits if no
-* + checks if a TOC.json is available in the working directory
-* - if yes, alerts the user and skips the reading/JSON writing parts, goes straight to user prompt
-* + @TODO handle/read/process existing TOC.json file
-* + adds a config object to the JSON, adds "name" that defaults to the current directory
-* + reads all PDF files in the working directory (alphabetical order)
-@TODO create sort function if necessary
-* + stores them in an array
-* + writes the array as JSON in the output directory
-* - prints a message that the JSON is generated, the user must edit the file if necessary
-* - wait for user prompt, continue or exit
-* + reads the array of files from TOC.json
-* + loops through each PDF file and merges them
-* + writes the output using the "name" property in the TOC.json file
-*/
-
-// import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
-
 import fs, { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { exit } from 'node:process'
 import { PDFDocument } from 'pdf-lib'
+// LATER import { readlineSync } from 'readline-sync'
 
 export class pdfMerger {
 
@@ -67,6 +47,7 @@ export class pdfMerger {
 
     // existing TOC file that can be used if available
     #existingTOCFileContent
+    #existingTOCFileNeedsRewrite
 
     // path of the source directory
     #sourceDirectory
@@ -104,6 +85,7 @@ export class pdfMerger {
     // that are not in the source directory at the time of scanning
     #filterExistingTOCFile(fileContent) {
         let filteredFiles = { ...fileContent }
+        let contentChanged = false
         if (fileContent && fileContent?.files && fileContent.files?.length) {
             filteredFiles.files = fileContent.files.filter((item) => {
                 let fileExists = false
@@ -114,10 +96,11 @@ export class pdfMerger {
                     this.#errorHandler(e, 'TOC_FILE_FILTER', false, { missingFile: item })
                 }
                 console.log(`${fileExists ? 'item exists, leaving it in' : 'item not exists, removing'}`)
+                if (!fileExists) contentChanged = true
                 return fileExists
             })
         }
-        return filteredFiles
+        return [ filteredFiles, contentChanged ]
     }
 
     // create output directory if necessary
@@ -197,8 +180,13 @@ export class pdfMerger {
         // if there was an existing TOC file, write it back after filtering
         if (this.#existingTOCFileContent?.files) {
             // filtering existing file contents, wiping out any invalid files
-            this.#existingTOCFileContent = this.#filterExistingTOCFile(this.#existingTOCFileContent)
-            this.#writeTOCFile(this.#existingTOCFileContent)
+            [ this.#existingTOCFileContent, this.#existingTOCFileNeedsRewrite ] = this.#filterExistingTOCFile(this.#existingTOCFileContent)
+
+            if (this.#existingTOCFileNeedsRewrite) {
+                console.info('TOC file needs rewite')
+                this.#writeTOCFile(this.#existingTOCFileContent)
+            }
+
             this.#tocObject = this.#existingTOCFileContent
         } else {
             try {
