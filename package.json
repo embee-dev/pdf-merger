@@ -16,7 +16,8 @@
     "globals": "^15.2.0"
   },
   "dependencies": {
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "readline-sync": "^1.4.10"
   },
   "bin": {
     "pdf-merger": "./bin/cli.js"
