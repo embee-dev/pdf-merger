@@ -1,4 +1,4 @@
-import fs, { readFileSync } from 'node:fs'
+import fs from 'node:fs'
 import path from 'node:path'
 import { exit } from 'node:process'
 import { PDFDocument } from 'pdf-lib'
@@ -76,7 +76,7 @@ export class pdfMerger {
     #checkAndReadExistingTOCFile(filePath) {
         return (
             fs.lstatSync(filePath).isFile()
-            ? JSON.parse(readFileSync(filePath, 'utf-8'))
+            ? JSON.parse(fs.readFileSync(filePath, 'utf-8'))
             : null
         )
     }
