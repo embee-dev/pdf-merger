@@ -41,6 +41,13 @@ export class pdfMerger {
         files: []
     }
 
+    set outputFileName(userDefinedOutputFile) {
+        // file name will be based on the folder name of the source directory
+        if (this.#sourceDirectory) {
+            this.#tocObject.targetFile = (path.parse(this.#sourceDirectory).name).concat(this.#config.extensions.pdf)
+        }
+    }
+
     get #TOCFilePath() {
         return path.join(this.#config.targetDir, this.#tocObject.tocFileName)
     }
@@ -51,15 +58,14 @@ export class pdfMerger {
 
     // path of the source directory
     #sourceDirectory
-    
-    constructor(sourceDirectory) {
+    set sourceDirectory(userDefinedDirectory) {
         // uses command line argument if given, or the source folder
-        this.#sourceDirectory = path.resolve(sourceDirectory)
+        this.#sourceDirectory = path.resolve(userDefinedDirectory)
 
         console.log(`sourceDirectory is: ${this.#sourceDirectory}`)
-
-        // file name will be based on the folder name of the source directory
-        this.#tocObject.targetFile = (path.parse(this.#sourceDirectory).name).concat(this.#config.extensions.pdf)
+    }
+    
+    constructor() {
     }
 
     // reads all files in current directory and filters them (only allowed extensions according to config)
