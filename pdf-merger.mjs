@@ -56,10 +56,9 @@ export class pdfMerger {
         // uses command line argument if given, or the source folder
         this.#sourceDirectory = path.resolve(sourceDirectory)
 
-        console.log(`sourceDirectory is: ${this.#sourceDirectory}`)
-
-        // file name will be based on the folder name of the source directory
         this.#tocObject.targetFile = (path.parse(this.#sourceDirectory).name).concat(this.#config.extensions.pdf)
+
+        console.log(`sourceDirectory is: ${this.#sourceDirectory}, targetFile is: ${this.#tocObject.targetFile}`)
     }
 
     // reads all files in current directory and filters them (only allowed extensions according to config)
@@ -123,6 +122,7 @@ export class pdfMerger {
                         console.info(this.#messages.TOC_FILE_CHECK_ERROR)
                         break
                     default:
+                        console.error(error)
                         break
                 }
                 break
@@ -132,6 +132,7 @@ export class pdfMerger {
                         console.info(this.#messages.TOC_FILE_FILTER_ERROR, params.missingFile)
                         break
                     default:
+                        console.error(error)
                         break
                 }
                 break
@@ -144,6 +145,20 @@ export class pdfMerger {
                         console.error(this.#messages.ACCESS_ERROR)
                         break
                     default:
+                        console.error(error)
+                        break
+                }
+                break
+            case 'MERGE_PDFS':
+                switch (error.code) {
+                    case 'ENOENT':
+                        console.error(this.#messages.DIR_NOT_EXISTS, this.#sourceDirectory)
+                        break
+                    case 'EACCES':
+                        console.error(this.#messages.ACCESS_ERROR)
+                        break
+                    default:
+                        console.error(error)
                         break
                 }
                 break
@@ -166,6 +181,7 @@ export class pdfMerger {
 
         const mergedPDFBytes = await mergedPDF.save();
         fs.writeFileSync(path.join(this.#config.targetDir, TOCObject.targetFile), mergedPDFBytes, { flag: 'w' })
+        console.info(`${this.#tocObject.targetFile} written`)
     }
 
     // the main program starts here
