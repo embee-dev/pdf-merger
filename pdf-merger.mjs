@@ -122,6 +122,7 @@ export class pdfMerger {
                         console.info(this.#messages.TOC_FILE_CHECK_ERROR)
                         break
                     default:
+                        console.error(error)
                         break
                 }
                 break
@@ -131,6 +132,7 @@ export class pdfMerger {
                         console.info(this.#messages.TOC_FILE_FILTER_ERROR, params.missingFile)
                         break
                     default:
+                        console.error(error)
                         break
                 }
                 break
@@ -143,6 +145,20 @@ export class pdfMerger {
                         console.error(this.#messages.ACCESS_ERROR)
                         break
                     default:
+                        console.error(error)
+                        break
+                }
+                break
+            case 'MERGE_PDFS':
+                switch (error.code) {
+                    case 'ENOENT':
+                        console.error(this.#messages.DIR_NOT_EXISTS, this.#sourceDirectory)
+                        break
+                    case 'EACCES':
+                        console.error(this.#messages.ACCESS_ERROR)
+                        break
+                    default:
+                        console.error(error)
                         break
                 }
                 break
@@ -165,6 +181,7 @@ export class pdfMerger {
 
         const mergedPDFBytes = await mergedPDF.save();
         fs.writeFileSync(path.join(this.#config.targetDir, TOCObject.targetFile), mergedPDFBytes, { flag: 'w' })
+        console.info(`${this.#tocObject.targetFile} written`)
     }
 
     // the main program starts here
