@@ -67,6 +67,8 @@ export class pdfMerger {
             fs.lstatSync(path.join(sourceDirectory, item)).isFile()
             &&
             path.extname(item).toLowerCase() === this.#config.extensions.pdf
+        ).sort((a, b) => 
+            a.localeCompare(b)
         )
     }
 
