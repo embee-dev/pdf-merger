@@ -2,8 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { cwd, exit } from 'node:process'
 import { PDFDocument } from 'pdf-lib'
-import readline from 'readline-sync'
-const { readlineSync } = readline
+import readlineSync from 'readline-sync'
 
 export class pdfMerger {
 
@@ -19,7 +18,11 @@ export class pdfMerger {
         // default file extensions
         extensions: {
             pdf: '.pdf'
-        }
+        },
+
+        // if true, the program prompts the user for input on
+        // otherwise automatic values, like target file name etc.
+        interactive: false
     }
 
     // program messages
@@ -27,7 +30,9 @@ export class pdfMerger {
         TOC_FILE_CHECK_ERROR: 'Checking any existing TOC file was unsuccessful. Will be creating a new TOC file.',
         TOC_FILE_FILTER_ERROR: 'There was an error looking for file "%s". Removing it from the list.',
         DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
-        ACCESS_ERROR: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...'
+        ACCESS_ERROR: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...',
+
+        I_OVERRIDE_DEFAULT_TARGETFILE: 'Do you widh to change the name of the generated PDF file? If yes, please provide a filename here, if no, just leave the field as is.'
     }
 
     // this object will be filled in with the appropiate data (filename, toc filename etc.)
@@ -189,7 +194,16 @@ export class pdfMerger {
         // uses command line argument if given, or the source folder
         this.#sourceDirectory = sourceDirectory ? path.resolve(sourceDirectory) : cwd()
 
+        this.#config.interactive = interactive
+
         this.#tocObject.targetFile = targetFile || (path.parse(this.#sourceDirectory).name).concat(this.#config.extensions.pdf)
+
+        if (this.#config.interactive) {
+            const userProvidedTargetFile = readlineSync.question(this.#messages.I_OVERRIDE_DEFAULT_TARGETFILE, {
+                defaultInput: this.#tocObject.targetFile
+            })
+            console.log(`You provided ${userProvidedTargetFile} as the target file name`)
+        }
 
         console.log(`sourceDirectory is: ${this.#sourceDirectory}, targetFile is: ${this.#tocObject.targetFile}`)
     }
