@@ -12,9 +12,16 @@ const parser = new ArgumentParser({
     description: 'PDF Merger',
     add_help: true
 })
-parser.add_argument('-s', '--source', { help: 'Path to the source directory, defaults to current folder' })
-parser.add_argument('-o', '--output', { help: 'Name of the generated file, defaults to the name of the current folder: "current folder".pdf' })
-parser.add_argument('-i', '--interactive', { help: 'Gives the user the possibility to edit options like the name of the generated file etc.', action: 'store_true' })
+parser.add_argument('-s', '--source', {
+    help: 'Path to the source directory, defaults to current folder'
+})
+parser.add_argument('-o', '--output', {
+    help: 'Name of the generated file, defaults to the name of the current folder: "current folder".pdf'
+})
+parser.add_argument('-i', '--interactive', {
+    action: 'store_true',
+    help: 'Gives the user the possibility to edit options like the name of the generated file etc.'
+})
 
 if (commandLineParameters.length) {
     args = parser.parse_args()
