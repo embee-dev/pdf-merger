@@ -32,7 +32,10 @@ export class pdfMerger {
         DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
         ACCESS_ERROR: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...',
 
-        I_OVERRIDE_DEFAULT_TARGETFILE: 'Do you widh to change the name of the generated PDF file? If yes, please provide a filename here, if no, just leave the field as is.'
+        USER_STOPPED: 'Feel free to edit the generated JSON file.\nWhen you are ready, start the program again. Bye!',
+
+        I_OVERRIDE_DEFAULT_TARGETFILE: 'Do you widh to change the name of the generated PDF file?\nIf yes, please provide a filename here, if no, just leave the field as is.',
+        I_CONTINUE_FROM_HERE: 'A TOC.json file has been created.\nIt contains the name of the target PDF file and the order of the original PDF files to be merged\nDo you wish to edit the file manually before proceeding?'
     }
 
     // this object will be filled in with the appropiate data (filename, toc filename etc.)
@@ -164,6 +167,9 @@ export class pdfMerger {
                         break
                 }
                 break
+            case 'USER_STOPPED':
+                console.error(this.#messages.USER_STOPPED)
+                break
             default:
                 break
         }
@@ -241,6 +247,11 @@ export class pdfMerger {
 
         // @TODO ask for user input to continue from here
         // or let the user edit the TOC file first
+        const userWishesToEditManually = readlineSync.keyInYNStrict(this.#messages.I_CONTINUE_FROM_HERE)
+        
+        if (userWishesToEditManually) {
+            this.#errorHandler({}, 'USER_STOPPED', true)
+        }
 
         // do real work
         // see https://github.com/Hopding/pdf-lib/issues/252#issuecomment-566063380
