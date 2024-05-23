@@ -1,8 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { exit } from 'node:process'
+import { cwd, exit } from 'node:process'
 import { PDFDocument } from 'pdf-lib'
-// LATER import { readlineSync } from 'readline-sync'
+import readline from 'readline-sync'
+const { readlineSync } = readline
 
 export class pdfMerger {
 
@@ -52,13 +53,7 @@ export class pdfMerger {
     // path of the source directory
     #sourceDirectory
     
-    constructor(sourceDirectory) {
-        // uses command line argument if given, or the source folder
-        this.#sourceDirectory = path.resolve(sourceDirectory)
-
-        this.#tocObject.targetFile = (path.parse(this.#sourceDirectory).name).concat(this.#config.extensions.pdf)
-
-        console.log(`sourceDirectory is: ${this.#sourceDirectory}, targetFile is: ${this.#tocObject.targetFile}`)
+    constructor() {
     }
 
     // reads all files in current directory and filters them (only allowed extensions according to config)
@@ -184,6 +179,19 @@ export class pdfMerger {
         const mergedPDFBytes = await mergedPDF.save();
         fs.writeFileSync(path.join(this.#config.targetDir, TOCObject.targetFile), mergedPDFBytes, { flag: 'w' })
         console.info(`${this.#tocObject.targetFile} written`)
+    }
+
+    init({
+        sourceDirectory = null,
+        targetFile = null,
+        interactive = false
+    }) {
+        // uses command line argument if given, or the source folder
+        this.#sourceDirectory = sourceDirectory ? path.resolve(sourceDirectory) : cwd()
+
+        this.#tocObject.targetFile = targetFile || (path.parse(this.#sourceDirectory).name).concat(this.#config.extensions.pdf)
+
+        console.log(`sourceDirectory is: ${this.#sourceDirectory}, targetFile is: ${this.#tocObject.targetFile}`)
     }
 
     // the main program starts here
