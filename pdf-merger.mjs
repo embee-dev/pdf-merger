@@ -1,3 +1,4 @@
+import { error } from 'node:console'
 import fs from 'node:fs'
 import path from 'node:path'
 import { cwd, exit } from 'node:process'
@@ -8,12 +9,16 @@ export class pdfMerger {
 
     // program defaults
     #config = {
-
         // value used as space for JSON.stringify, when generating the TOC.json file
         jsonSpace: 4,
+
+        // the directory containing the PDF files to be merged
+        // either defaults to the current directory where the program was called
+        // or provided by either the TOC.json file or via command line argument
+        sourceDirectory: '',
     
         // generated files will go in this folder
-        targetDir: 'generated',
+        targetDirectory: 'generated',
     
         // default file extensions
         extensions: {
@@ -23,19 +28,6 @@ export class pdfMerger {
         // if true, the program prompts the user for input on
         // otherwise automatic values, like target file name etc.
         interactive: false
-    }
-
-    // program messages
-    #messages = {
-        TOC_FILE_CHECK_ERROR: 'Checking any existing TOC file was unsuccessful. Will be creating a new TOC file.',
-        TOC_FILE_FILTER_ERROR: 'There was an error looking for file "%s". Removing it from the list.',
-        DIR_NOT_EXISTS: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
-        ACCESS_ERROR: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...',
-
-        USER_STOPPED: 'Feel free to edit the generated JSON file.\nWhen you are ready, start the program again. Bye!',
-
-        I_OVERRIDE_DEFAULT_TARGETFILE: 'Do you widh to change the name of the generated PDF file?\nIf yes, please provide a filename here, if no, just leave the field as is.',
-        I_CONTINUE_FROM_HERE: 'A TOC.json file has been created.\nIt contains the name of the target PDF file and the order of the original PDF files to be merged\nDo you wish to edit the file manually before proceeding?'
     }
 
     // this object will be filled in with the appropiate data (filename, toc filename etc.)
@@ -51,17 +43,120 @@ export class pdfMerger {
     }
 
     get #TOCFilePath() {
-        return path.join(this.#config.targetDir, this.#tocObject.tocFileName)
+        return path.join(this.#config.targetDirectory, this.#tocObject.tocFileName)
     }
 
-    // existing TOC file that can be used if available
+    // helper to store the existing TOC file that can be used if available
     #existingTOCFileContent
+    // flag to decide whether the existing TOC file needs rewrite (for example in case of missing files etc.)
     #existingTOCFileNeedsRewrite
 
-    // path of the source directory
-    #sourceDirectory
-    
-    constructor() {
+    #logTypes = {
+        info: 'info',
+        error: 'error'
+    }
+    #log(type = this.#logTypes.info, parameters = {}) {
+        if (type === this.#logTypes.info) {
+            console.info(parameters)
+        }
+
+        if (type === this.#logTypes.error) {
+            console.error(parameters)
+        }
+    }
+
+    // program messages
+    #messages = {
+        errors: {
+            fileCheckError: 'Checking any existing TOC file was unsuccessful. Will be creating a new TOC file.',
+            fileFilterError: 'There was an error looking for file "%s". Removing it from the list.',
+            directoryNotExistsError: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
+            accessError: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...',    
+        },
+
+        interaction: {
+            overrideDefaultTargetFile: 'Do you widh to change the name of the generated PDF file?\nIf yes, please provide a filename here, if no, just leave the field as is.',
+            continueFromHere: 'A TOC.json file has been created.\nIt contains the name of the target PDF file and the order of the original PDF files to be merged\nDo you wish to edit the file manually before proceeding?'
+        },
+        
+        info: {
+            userStopped: 'Feel free to edit the generated JSON file.\nWhen you are ready, start the program again. Bye!',
+        }
+    }
+
+    // object to tag locations of different messages
+    #locationMarkers = {
+        fileCheck: 'TOC_FILE_CHECK',
+        fileFilter: 'TOC_FILE_FILTER',
+        targetFolder: 'TARGET_FOLDER',
+        mergePDFs: 'MERGE_PDFS',
+
+        userStopped: 'USER_STOPPED'
+    }
+
+    // prints various messages in case of any errors
+    #messageHandler({
+        errorObject = null,
+        locationMarker = '',
+        needsTerminate = false,
+        printParams = null
+    } = {}) {
+        switch (locationMarker) {
+            case this.#locationMarkers.fileCheck:
+                switch (errorObject.code) {
+                    case 'ENOENT':
+                        this.#log(this.#logTypes.error, this.#messages.errors.fileCheckError)
+                        break
+                    default:
+                        this.#log(this.#logTypes.error, error)
+                        break
+                }
+                break
+            case this.#locationMarkers.fileFilter:
+                switch (errorObject.code) {
+                    case 'ENOENT':
+                        this.#log(this.#logTypes.info, this.#messages.errors.fileFilterError, printParams.missingFile)
+                        break
+                    default:
+                        this.#log(this.#logTypes.error, errorObject)
+                        break
+                }
+                break
+            case this.#locationMarkers.targetFolder:
+                switch (errorObject.code) {
+                    case 'ENOENT':
+                        this.#log(this.#logTypes.error, this.#messages.errors.directoryNotExistsError, this.#config.sourceDirectory)
+                        break
+                    case 'EACCES':
+                        this.#log(this.#logTypes.error, this.#messages.errors.accessError)
+                        break
+                    default:
+                        this.#log(this.#logTypes.error, errorObject)
+                        break
+                }
+                break
+            case this.#locationMarkers.mergePDFs:
+                switch (errorObject.code) {
+                    case 'ENOENT':
+                        this.#log(this.#logTypes.error, this.#messages.errors.directoryNotExistsError, this.#config.sourceDirectory)
+                        break
+                    case 'EACCES':
+                        this.#log(this.#logTypes.error, this.#messages.errors.accessError)
+                        break
+                    default:
+                        this.#log(this.#logTypes.error, errorObject)
+                        break
+                }
+                break
+            case this.#locationMarkers.userStopped:
+                this.#log(this.#logTypes.info, this.#messages.info.userStopped)
+                break
+            default:
+                break
+        }
+        if (needsTerminate) {
+            exit(1)
+        }
     }
 
     // reads all files in current directory and filters them (only allowed extensions according to config)
@@ -93,13 +188,17 @@ export class pdfMerger {
         if (fileContent && fileContent?.files && fileContent.files?.length) {
             filteredFiles.files = fileContent.files.filter((item) => {
                 let fileExists = false
-                console.log(`filtering files, checking: ${item}`)
+                this.#log(this.#logTypes.info, `filtering files, checking: ${item}`)
                 try {
-                    fileExists = fs.lstatSync(path.join(this.#sourceDirectory, item)).isFile()
+                    fileExists = fs.lstatSync(path.join(this.#config.sourceDirectory, item)).isFile()
                 } catch (e) {
-                    this.#errorHandler(e, 'TOC_FILE_FILTER', false, { missingFile: item })
+                    this.#messageHandler({
+                        errorObject: e,
+                        locationMarker: this.#locationMarkers.fileFilter,
+                        printParams: { missingFile: item }
+                    })
                 }
-                console.log(`${fileExists ? 'item exists, leaving it in' : 'item not exists, removing'}`)
+                this.#log(this.#logTypes.info, `${fileExists ? 'item exists, leaving it in' : 'item not exists, removing'}`)
                 if (!fileExists) contentChanged = true
                 return fileExists
             })
@@ -109,109 +208,49 @@ export class pdfMerger {
 
     // create output directory if necessary
     #createTargetDirectory() {
-        fs.mkdirSync(this.#config.targetDir, {recursive: true})
+        fs.mkdirSync(this.#config.targetDirectory, {recursive: true})
     }
 
     // write TOC.json file
     #writeTOCFile(fileObject) {
         fs.writeFileSync(this.#TOCFilePath, JSON.stringify(fileObject, null, this.#config.jsonSpace), { flag: 'w' })
-        console.info(`${this.#tocObject.tocFileName} written`)
-    }
-
-    // prints various messages in case of any errors
-    #errorHandler(error, errorLocation, terminate = false, params = {}) {
-        switch (errorLocation) {
-            case 'TOC_FILE_CHECK':
-                switch (error.code) {
-                    case 'ENOENT':
-                        console.info(this.#messages.TOC_FILE_CHECK_ERROR)
-                        break
-                    default:
-                        console.error(error)
-                        break
-                }
-                break
-            case 'TOC_FILE_FILTER':
-                switch (error.code) {
-                    case 'ENOENT':
-                        console.info(this.#messages.TOC_FILE_FILTER_ERROR, params.missingFile)
-                        break
-                    default:
-                        console.error(error)
-                        break
-                }
-                break
-            case 'TARGET_FOLDER':
-                switch (error.code) {
-                    case 'ENOENT':
-                        console.error(this.#messages.DIR_NOT_EXISTS, this.#sourceDirectory)
-                        break
-                    case 'EACCES':
-                        console.error(this.#messages.ACCESS_ERROR)
-                        break
-                    default:
-                        console.error(error)
-                        break
-                }
-                break
-            case 'MERGE_PDFS':
-                switch (error.code) {
-                    case 'ENOENT':
-                        console.error(this.#messages.DIR_NOT_EXISTS, this.#sourceDirectory)
-                        break
-                    case 'EACCES':
-                        console.error(this.#messages.ACCESS_ERROR)
-                        break
-                    default:
-                        console.error(error)
-                        break
-                }
-                break
-            case 'USER_STOPPED':
-                console.error(this.#messages.USER_STOPPED)
-                break
-            default:
-                break
-        }
-        if (terminate) {
-            exit(1)
-        }
+        this.#log(this.#logTypes.info, `${this.#tocObject.tocFileName} written`)
     }
 
     async #mergeAndSavePDF(TOCObject) {
         const mergedPDF = await PDFDocument.create();
 
         for (let pdfFile of TOCObject.files) {
-            const pdfContent = await PDFDocument.load(fs.readFileSync(path.join(this.#sourceDirectory, pdfFile)));
+            const pdfContent = await PDFDocument.load(fs.readFileSync(path.join(this.#config.sourceDirectory, pdfFile)));
             const pdfPages = await mergedPDF.copyPages(pdfContent, pdfContent.getPageIndices());
             pdfPages.forEach((page) => mergedPDF.addPage(page));
         }
 
         const mergedPDFBytes = await mergedPDF.save();
-        fs.writeFileSync(path.join(this.#config.targetDir, TOCObject.targetFile), mergedPDFBytes, { flag: 'w' })
-        console.info(`${this.#tocObject.targetFile} written`)
+        fs.writeFileSync(path.join(this.#config.targetDirectory, TOCObject.targetFile), mergedPDFBytes, { flag: 'w' })
+        this.#log(this.#logTypes.info, `${this.#tocObject.targetFile} written`)
     }
 
     init({
         sourceDirectory = null,
         targetFile = null,
         interactive = false
-    }) {
+    } = {}) {
         // uses command line argument if given, or the source folder
-        this.#sourceDirectory = sourceDirectory ? path.resolve(sourceDirectory) : cwd()
+        this.#config.sourceDirectory = sourceDirectory ? path.resolve(sourceDirectory) : cwd()
 
         this.#config.interactive = interactive
 
-        this.#tocObject.targetFile = targetFile || (path.parse(this.#sourceDirectory).name).concat(this.#config.extensions.pdf)
+        this.#tocObject.targetFile = targetFile || (path.parse(this.#config.sourceDirectory).name).concat(this.#config.extensions.pdf)
 
         if (this.#config.interactive) {
-            const userProvidedTargetFile = readlineSync.question(this.#messages.I_OVERRIDE_DEFAULT_TARGETFILE, {
+            const userProvidedTargetFile = readlineSync.question(this.#messages.interaction.overrideDefaultTargetFile, {
                 defaultInput: this.#tocObject.targetFile
             })
-            console.log(`You provided ${userProvidedTargetFile} as the target file name`)
+            this.#log(this.#logTypes.info, `You provided ${userProvidedTargetFile} as the target file name`)
         }
 
-        console.log(`sourceDirectory is: ${this.#sourceDirectory}, targetFile is: ${this.#tocObject.targetFile}`)
+        this.#log(this.#logTypes.info, `sourceDirectory is: ${this.#config.sourceDirectory}, targetFile is: ${this.#tocObject.targetFile}`)
     }
 
     // the main program starts here
@@ -221,7 +260,12 @@ export class pdfMerger {
         // if available, read its contents
         try {
             this.#existingTOCFileContent = this.#checkAndReadExistingTOCFile(this.#TOCFilePath)
-        } catch (e) { this.#errorHandler(e, 'TOC_FILE_CHECK', false) }
+        } catch (e) {
+            this.#messageHandler({
+                errorObject: e,
+                locationMarker: this.#locationMarkers.fileCheck
+            })
+        }
         
         // if there was an existing TOC file, write it back after filtering
         if (this.#existingTOCFileContent?.files) {
@@ -229,7 +273,7 @@ export class pdfMerger {
             [ this.#existingTOCFileContent, this.#existingTOCFileNeedsRewrite ] = this.#filterExistingTOCFile(this.#existingTOCFileContent)
 
             if (this.#existingTOCFileNeedsRewrite) {
-                console.info('TOC file needs rewite')
+                this.#log(this.#logTypes.info, 'TOC file needs rewite')
                 this.#writeTOCFile(this.#existingTOCFileContent)
             }
 
@@ -237,20 +281,27 @@ export class pdfMerger {
         } else {
             try {
                 this.#createTargetDirectory()
-                this.#tocObject.files = this.#getPDFFilesFromSourceDirectory(this.#sourceDirectory)
+                this.#tocObject.files = this.#getPDFFilesFromSourceDirectory(this.#config.sourceDirectory)
                 this.#writeTOCFile(this.#tocObject)
             } catch (e) {
-                this.#errorHandler(e, 'TARGET_FOLDER', true)
+                this.#messageHandler({
+                    errorObject: e,
+                    locationMarker: this.#locationMarkers.targetFolder,
+                    needsTerminate: true
+                })
             }
             
         }
 
         // @TODO ask for user input to continue from here
         // or let the user edit the TOC file first
-        const userWishesToEditManually = readlineSync.keyInYNStrict(this.#messages.I_CONTINUE_FROM_HERE)
+        const userWishesToEditManually = readlineSync.keyInYNStrict(this.#messages.interaction.continueFromHere)
         
         if (userWishesToEditManually) {
-            this.#errorHandler({}, 'USER_STOPPED', true)
+            this.#messageHandler({
+                locationMarker: this.#locationMarkers.userStopped,
+                needsTerminate: true
+            })
         }
 
         // do real work
@@ -258,7 +309,11 @@ export class pdfMerger {
         try {
             this.#mergeAndSavePDF(this.#tocObject)
         } catch (e) {
-            this.#errorHandler(e, 'MERGE_PDFS', true)
+            this.#messageHandler({
+                errorObject: e,
+                locationMarker: this.#locationMarkers.mergePDFs,
+                needsTerminate: true
+            })
         }
         
     }
