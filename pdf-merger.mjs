@@ -5,6 +5,8 @@ import { cwd, exit } from 'node:process'
 import { PDFDocument } from 'pdf-lib'
 import readlineSync from 'readline-sync'
 
+import { messageTypes, printMessage } from './modules/messagePrinter.mjs'
+
 export class pdfMerger {
 
     // program defaults
@@ -51,11 +53,6 @@ export class pdfMerger {
     // flag to decide whether the existing TOC file needs rewrite (for example in case of missing files etc.)
     #existingTOCFileNeedsRewrite
 
-    #messageTypes = {
-        info: 'info',
-        error: 'error'
-    }
-
     // program messages
     #messages = {
         errors: {
@@ -85,16 +82,6 @@ export class pdfMerger {
         userStopped: 'USER_STOPPED'
     }
 
-    #printMessage(type = this.#messageTypes.info, parameters = {}) {
-        if (type === this.#messageTypes.info) {
-            console.info(parameters)
-        }
-
-        if (type === this.#messageTypes.error) {
-            console.error(parameters)
-        }
-    }
-
     // prints various messages in case of any errors
     #dispatchMessage({
         errorObject = null,
@@ -106,51 +93,51 @@ export class pdfMerger {
             case this.#locationMarkers.fileCheck:
                 switch (errorObject.code) {
                     case 'ENOENT':
-                        this.#printMessage(this.#messageTypes.error, this.#messages.errors.fileCheckError)
+                        printMessage(messageTypes.error, this.#messages.errors.fileCheckError)
                         break
                     default:
-                        this.#printMessage(this.#messageTypes.error, error)
+                        printMessage(messageTypes.error, error)
                         break
                 }
                 break
             case this.#locationMarkers.fileFilter:
                 switch (errorObject.code) {
                     case 'ENOENT':
-                        this.#printMessage(this.#messageTypes.info, this.#messages.errors.fileFilterError, printParams.missingFile)
+                        printMessage(messageTypes.info, this.#messages.errors.fileFilterError, printParams.missingFile)
                         break
                     default:
-                        this.#printMessage(this.#messageTypes.error, errorObject)
+                        printMessage(messageTypes.error, errorObject)
                         break
                 }
                 break
             case this.#locationMarkers.targetFolder:
                 switch (errorObject.code) {
                     case 'ENOENT':
-                        this.#printMessage(this.#messageTypes.error, this.#messages.errors.directoryNotExistsError, this.#config.sourceDirectory)
+                        printMessage(messageTypes.error, this.#messages.errors.directoryNotExistsError, this.#config.sourceDirectory)
                         break
                     case 'EACCES':
-                        this.#printMessage(this.#messageTypes.error, this.#messages.errors.accessError)
+                        printMessage(messageTypes.error, this.#messages.errors.accessError)
                         break
                     default:
-                        this.#printMessage(this.#messageTypes.error, errorObject)
+                        printMessage(messageTypes.error, errorObject)
                         break
                 }
                 break
             case this.#locationMarkers.mergePDFs:
                 switch (errorObject.code) {
                     case 'ENOENT':
-                        this.#printMessage(this.#messageTypes.error, this.#messages.errors.directoryNotExistsError, this.#config.sourceDirectory)
+                        printMessage(messageTypes.error, this.#messages.errors.directoryNotExistsError, this.#config.sourceDirectory)
                         break
                     case 'EACCES':
-                        this.#printMessage(this.#messageTypes.error, this.#messages.errors.accessError)
+                        printMessage(messageTypes.error, this.#messages.errors.accessError)
                         break
                     default:
-                        this.#printMessage(this.#messageTypes.error, errorObject)
+                        printMessage(messageTypes.error, errorObject)
                         break
                 }
                 break
             case this.#locationMarkers.userStopped:
-                this.#printMessage(this.#messageTypes.info, this.#messages.info.userStopped)
+                printMessage(messageTypes.info, this.#messages.info.userStopped)
                 break
             default:
                 break
@@ -189,7 +176,7 @@ export class pdfMerger {
         if (fileContent && fileContent?.files && fileContent.files?.length) {
             filteredFiles.files = fileContent.files.filter((item) => {
                 let fileExists = false
-                this.#printMessage(this.#messageTypes.info, `filtering files, checking: ${item}`)
+                printMessage(messageTypes.info, `filtering files, checking: ${item}`)
                 try {
                     fileExists = fs.lstatSync(path.join(this.#config.sourceDirectory, item)).isFile()
                 } catch (e) {
@@ -199,7 +186,7 @@ export class pdfMerger {
                         printParams: { missingFile: item }
                     })
                 }
-                this.#printMessage(this.#messageTypes.info, `${fileExists ? 'item exists, leaving it in' : 'item not exists, removing'}`)
+                printMessage(messageTypes.info, `${fileExists ? 'item exists, leaving it in' : 'item not exists, removing'}`)
                 if (!fileExists) contentChanged = true
                 return fileExists
             })
@@ -215,7 +202,7 @@ export class pdfMerger {
     // write TOC.json file
     #writeTOCFile(fileObject) {
         fs.writeFileSync(this.#TOCFilePath, JSON.stringify(fileObject, null, this.#config.jsonSpace), { flag: 'w' })
-        this.#printMessage(this.#messageTypes.info, `${this.#tocObject.tocFileName} written`)
+        printMessage(messageTypes.info, `${this.#tocObject.tocFileName} written`)
     }
 
     async #mergeAndSavePDF(TOCObject) {
@@ -229,7 +216,7 @@ export class pdfMerger {
 
         const mergedPDFBytes = await mergedPDF.save();
         fs.writeFileSync(path.join(this.#config.targetDirectory, TOCObject.targetFile), mergedPDFBytes, { flag: 'w' })
-        this.#printMessage(this.#messageTypes.info, `${this.#tocObject.targetFile} written`)
+        printMessage(messageTypes.info, `${this.#tocObject.targetFile} written`)
     }
 
     init({
@@ -248,10 +235,10 @@ export class pdfMerger {
             const userProvidedTargetFile = readlineSync.question(this.#messages.interaction.overrideDefaultTargetFile, {
                 defaultInput: this.#tocObject.targetFile
             })
-            this.#printMessage(this.#messageTypes.info, `You provided ${userProvidedTargetFile} as the target file name`)
+            printMessage(messageTypes.info, `You provided ${userProvidedTargetFile} as the target file name`)
         }
 
-        this.#printMessage(this.#messageTypes.info, `sourceDirectory is: ${this.#config.sourceDirectory}, targetFile is: ${this.#tocObject.targetFile}`)
+        printMessage(messageTypes.info, `sourceDirectory is: ${this.#config.sourceDirectory}, targetFile is: ${this.#tocObject.targetFile}`)
     }
 
     // the main program starts here
@@ -274,7 +261,7 @@ export class pdfMerger {
             [ this.#existingTOCFileContent, this.#existingTOCFileNeedsRewrite ] = this.#filterExistingTOCFile(this.#existingTOCFileContent)
 
             if (this.#existingTOCFileNeedsRewrite) {
-                this.#printMessage(this.#messageTypes.info, 'TOC file needs rewite')
+                printMessage(messageTypes.info, 'TOC file needs rewite')
                 this.#writeTOCFile(this.#existingTOCFileContent)
             }
 
