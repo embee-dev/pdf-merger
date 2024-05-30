@@ -2,14 +2,13 @@
   "name": "pdf-merger",
   "version": "1.0.0",
   "type": "module",
-  "description": "PDF Merger for private purposes",
-  "main": "index.js",
-  "scripts": {
-    "start": "node pdf-merger.mjs",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
+  "description": "PDF Merger CLI for merging multiple PDF files.",
+  "main": "index.mjs",
+  "author": "embee-dev (https://github.com/embee-dev)",
+  "repository": "https://github.com/embee-dev/pdf-merger",
+  "homepage": "https://github.com/embee-dev/pdf-merger#readme",
+  "bugs": "https://github.com/embee-dev/pdf-merger/issues",
+  "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.2.0",
     "eslint": "^9.2.0",
