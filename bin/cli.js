@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-import { pdfMerger } from '../pdf-merger.mjs'
+import { PDFMerger } from '../pdf-merger.mjs'
 import { argv } from 'node:process'
 import { ArgumentParser } from 'argparse'
 
 import { messageTypes, printMessage } from '../modules/messagePrinter.mjs'
 
-const myPdfMerger = new pdfMerger()
+const myPdfMerger = new PDFMerger()
 const commandLineParameters = argv.slice(2)
 let args
 
