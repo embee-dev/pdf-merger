@@ -5,7 +5,10 @@
   "description": "PDF Merger CLI for merging multiple PDF files.",
   "main": "index.mjs",
   "author": "embee-dev (https://github.com/embee-dev)",
-  "repository": "https://github.com/embee-dev/pdf-merger",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/embee-dev/pdf-merger.git"
+  },
   "homepage": "https://github.com/embee-dev/pdf-merger#readme",
   "bugs": "https://github.com/embee-dev/pdf-merger/issues",
   "license": "MIT",
@@ -19,6 +22,6 @@
     "readline-sync": "^1.4.10"
   },
   "bin": {
-    "pdf-merger": "./bin/cli.js"
+    "pdf-merger": "bin/cli.js"
   }
 }
