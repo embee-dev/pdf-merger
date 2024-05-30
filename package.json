@@ -1,5 +1,5 @@
 {
-  "name": "pdf-merger",
+  "name": "@embee-dev/pdf-merger",
   "version": "1.0.0",
   "type": "module",
   "description": "PDF Merger CLI for merging multiple PDF files.",
