@@ -4,6 +4,9 @@ test-folder
 # Generated files
 generated
 
+# Local VS Code settings
+.vscode
+
 # Logs
 logs
 *.log
