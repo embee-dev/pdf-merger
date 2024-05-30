@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
-import { pdfMerger } from '../pdf-merger.mjs'
-import { argv } from 'node:process'
+import { PDFMerger } from '../pdf-merger.mjs'
 
-let myPdfMerger = new pdfMerger(argv?.[2] ?? '.')
+const myPdfMerger = new PDFMerger()
+
+myPdfMerger.init()
 myPdfMerger.start()
