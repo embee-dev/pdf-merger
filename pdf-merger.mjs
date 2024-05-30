@@ -7,7 +7,7 @@ import readlineSync from 'readline-sync'
 
 import { messageTypes, printMessage } from './modules/messagePrinter.mjs'
 
-export class pdfMerger {
+export class PDFMerger {
 
     // program defaults
     #config = {
