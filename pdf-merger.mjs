@@ -11,8 +11,11 @@ export class PDFMerger {
 
     // program defaults
     #config = {
+        // URL of the documentation for the TOC file format
+        JSONFormatURL: 'https://www.npmjs.com/package/@embee-dev/pdf-merger#TODO',
+
         // value used as space for JSON.stringify, when generating the TOC.json file
-        jsonSpace: 4,
+        JSONSpace: 4,
 
         // the directory containing the PDF files to be merged
         // either defaults to the current directory where the program was called
@@ -160,12 +163,13 @@ export class PDFMerger {
     // go through the existing TOC file and remove any file entries
     // that are not in the source directory at the time of scanning
     #filterExistingTOCFile(fileContent) {
-        let filteredFiles = { ...fileContent }
-        let contentChanged = false
+        let filteredFiles = { ...fileContent },
+            contentChanged = false
+
         if (fileContent && fileContent?.files && fileContent.files?.length) {
             filteredFiles.files = fileContent.files.filter((item) => {
                 let fileExists = false
-                this.#messagePrinter.info('filteringFiles', item)
+                this.#messagePrinter.group('filteringFile', item)
                 try {
                     fileExists = fs.lstatSync(path.join(this.#config.sourceDirectory, item)).isFile()
                 } catch (e) {
@@ -175,8 +179,12 @@ export class PDFMerger {
                         printParams: { missingFile: item }
                     })
                 }
-                this.#messagePrinter.info(fileExists ? 'filteringFilePassed' : 'filteringFileMissing')
-                if (!fileExists) contentChanged = true
+                if (!fileExists) {
+                    contentChanged = true
+                } else {
+                    this.#messagePrinter.info('filteringFilePassed', item)
+                }
+                this.#messagePrinter.groupEnd()
                 return fileExists
             })
         }
@@ -190,7 +198,7 @@ export class PDFMerger {
 
     // write TOC.json file
     #writeTOCFile(fileObject) {
-        fs.writeFileSync(this.#TOCFilePath, JSON.stringify(fileObject, null, this.#config.jsonSpace), { flag: 'w' })
+        fs.writeFileSync(this.#TOCFilePath, JSON.stringify(fileObject, null, this.#config.JSONSpace), { flag: 'w' })
         this.#messagePrinter.info('tocFileWritten', this.#tocObject.tocFileName)
     }
 
@@ -213,16 +221,20 @@ export class PDFMerger {
 
         const mergedPDFBytes = await mergedPDF.save();
         fs.writeFileSync(path.join(this.#config.targetDirectory, TOCObject.targetFile), mergedPDFBytes, { flag: 'w' })
-        this.#messagePrinter.info('mergedFileWritten', this.#tocObject.targetFile)
+        this.#messagePrinter.info('mergedFileWritten', TOCObject.targetFile)
     }
 
     constructor({
         sourceDirectory = null,
         targetFile = null,
+
+        // @TODO is interactive needed?
         interactive = false,
+
         language = ''
     } = {}) {
-        // uses command line argument if given, or the source folder
+
+        // processing command line arguments
         this.#config.sourceDirectory = sourceDirectory ? path.resolve(sourceDirectory) : cwd()
 
         this.#config.interactive = interactive
@@ -233,23 +245,20 @@ export class PDFMerger {
             language: language
         })
 
-        if (this.#config.interactive) {
-            const userProvidedTargetFile = readlineSync.question(this.#messagePrinter.info('overrideDefaultTargetFile'), {
-                defaultInput: this.#tocObject.targetFile
-            })
-            this.#messagePrinter.info('echoUserProvidedTargetFile', userProvidedTargetFile)
-        }
-
-        this.#messagePrinter.info('echoUserProvidedStrings', this.#config.sourceDirectory, this.#tocObject.targetFile)
+        this.#messagePrinter.info('welcome')
     }
 
     // the main program starts here
     start() {
+
+        this.#messagePrinter.info('beginWork')
         
         // check for any existing TOC files,
         // if available, read its contents
         try {
+            this.#messagePrinter.group('checkingExistingTOCFile')
             this.#existingTOCFileContent = this.#checkAndReadExistingTOCFile(this.#TOCFilePath)
+            this.#messagePrinter.groupEnd()
         } catch (e) {
             this.#dispatchMessage({
                 errorObject: e,
@@ -259,8 +268,12 @@ export class PDFMerger {
         
         // if there was an existing TOC file, write it back after filtering
         if (this.#existingTOCFileContent?.files) {
+            this.#messagePrinter.group('existingTOCFileFound')
+
             // filtering existing file contents, wiping out any invalid files
-            [ this.#existingTOCFileContent, this.#existingTOCFileNeedsRewrite ] = this.#filterExistingTOCFile(this.#existingTOCFileContent)
+            ; [ this.#existingTOCFileContent, this.#existingTOCFileNeedsRewrite ] = this.#filterExistingTOCFile(this.#existingTOCFileContent)
+
+            this.#messagePrinter.groupEnd()
 
             if (this.#existingTOCFileNeedsRewrite) {
                 this.#messagePrinter.info('tocFileNeedsRewrite')
@@ -285,9 +298,10 @@ export class PDFMerger {
 
         // @TODO ask for user input to continue from here
         // or let the user edit the TOC file first
-        const userWishesToEditManually = readlineSync.keyInYNStrict(this.#messagePrinter.getMessage('continueFromHere'))
+        this.#messagePrinter.info('continueFromHere', this.#tocObject.tocFileName, this.#config.JSONFormatURL)
+        const userWishesToContinue = readlineSync.keyInYNStrict(this.#messagePrinter.getMessage('continueFromHerePrompt'))
         
-        if (userWishesToEditManually) {
+        if (!userWishesToContinue) {
             this.#dispatchMessage({
                 locationMarker: this.#locationMarkers.userStopped,
                 terminateProgram: true
