@@ -130,6 +130,7 @@ export class PDFMerger {
                 break
             case this.#locationMarkers.userStopped:
                 this.#messagePrinter.info('userStopped')
+                this.#messagePrinter.info('bye')
                 break
             default:
                 break
@@ -222,6 +223,7 @@ export class PDFMerger {
         const mergedPDFBytes = await mergedPDF.save();
         fs.writeFileSync(path.join(this.#config.targetDirectory, TOCObject.targetFile), mergedPDFBytes, { flag: 'w' })
         this.#messagePrinter.info('mergedFileWritten', TOCObject.targetFile)
+        this.#messagePrinter.info('bye')
     }
 
     constructor({
@@ -258,12 +260,13 @@ export class PDFMerger {
         try {
             this.#messagePrinter.group('checkingExistingTOCFile')
             this.#existingTOCFileContent = this.#checkAndReadExistingTOCFile(this.#TOCFilePath)
-            this.#messagePrinter.groupEnd()
         } catch (e) {
             this.#dispatchMessage({
                 errorObject: e,
                 locationMarker: this.#locationMarkers.fileCheck
             })
+        } finally {
+            this.#messagePrinter.groupEnd()
         }
         
         // if there was an existing TOC file, write it back after filtering

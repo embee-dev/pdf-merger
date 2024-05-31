@@ -23,7 +23,10 @@ export class MessagePrinter {
     #messages = {
         'EN': {
             // errors
-            fileCheckError: 'Checking any existing TOC file was unsuccessful. Will be creating a new TOC file.',
+            fileCheckError: `Checking any existing TOC file was unsuccessful.
+            A new TOC file will be generated.
+            
+            `,
             fileFilterError: 'Cannot find/access file "%s", it will be removed from the TOC file list.',
             directoryNotExistsError: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
             accessError: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...',
@@ -50,9 +53,12 @@ export class MessagePrinter {
             Saving it now...
             `,
 
-            tocFileWritten: `The TOC file with the name "%s" was successfully saved.
+            tocFileWritten: `The TOC file with the name "%s" was successfully saved.`,
+            mergedFileWritten: `
+            The merged PDF file "%s" was successfully generated!
+            Thank you for using PDF Merger!
+            
             `,
-            mergedFileWritten: 'The merged PDF file "%s" was successfully generated!',
 
             continueFromHere: `
             OK, everything is ready!
@@ -72,7 +78,13 @@ export class MessagePrinter {
             if [N]O, the program will exit and you can edit the TOC file.
             Please press: `,
 
-            userStopped: 'Feel free to edit the generated JSON file.\nWhen you are ready, start the program again. Bye!',
+            userStopped: `
+            OK, please use your favorite text editor to edit the generated JSON file.
+            When you are ready with your edits, start the program again.
+            
+            `,
+
+            bye: `Bye!`,
             needsTranslationLabel: '### TRANSLATE ME ### --> '
         },
         'HU': {
