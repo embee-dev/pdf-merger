@@ -11,7 +11,12 @@ export class MessagePrinter {
             'HU'
         ],
         defaultLanguage: 'EN',
-        language: ''
+        language: '',
+
+        messageSeparator: {
+            info: '\n'.concat('-'.repeat(20), '\n'),
+            error: '\n'.concat('!'.repeat(20), '\n')
+        }
     }
 
     // program messages
@@ -67,9 +72,9 @@ export class MessagePrinter {
     }
 
     info(messageKey = '', ...parameters) {
-        console.info(this.#getMessage(messageKey), ...parameters)
+        console.info(this.#config.messageSeparator.info.concat(this.getMessage(messageKey), this.#config.messageSeparator.info), ...parameters)
     }
     error(messageKey = '', ...parameters) {
-        console.error(this.#getMessage(messageKey), ...parameters)
+        console.error(this.#config.messageSeparator.error.concat(this.getMessage(messageKey), this.#config.messageSeparator.error), ...parameters)
     }
 }
