@@ -61,6 +61,7 @@ export class PDFMerger {
         fileFilter: 'TOC_FILE_FILTER',
         targetFolder: 'TARGET_FOLDER',
         mergePDFs: 'MERGE_PDFS',
+        loadPDFs: 'LOAD_PFDS',
 
         userStopped: 'USER_STOPPED'
     }
@@ -117,6 +118,11 @@ export class PDFMerger {
                     default:
                         this.#messagePrinter.error('unknownError', errorObject)
                         break
+                }
+                break
+            case this.#locationMarkers.loadPDFs:
+                if (errorObject.message.indexOf('encrypted') !== -1) {
+                        this.#messagePrinter.error('pdfEncryptedError', printParams.encryptedFile)
                 }
                 break
             case this.#locationMarkers.userStopped:
@@ -192,9 +198,17 @@ export class PDFMerger {
         const mergedPDF = await PDFDocument.create();
 
         for (let pdfFile of TOCObject.files) {
-            const pdfContent = await PDFDocument.load(fs.readFileSync(path.join(this.#config.sourceDirectory, pdfFile)));
-            const pdfPages = await mergedPDF.copyPages(pdfContent, pdfContent.getPageIndices());
-            pdfPages.forEach((page) => mergedPDF.addPage(page));
+            try {
+                const pdfContent = await PDFDocument.load(fs.readFileSync(path.join(this.#config.sourceDirectory, pdfFile)));
+                const pdfPages = await mergedPDF.copyPages(pdfContent, pdfContent.getPageIndices());
+                pdfPages.forEach((page) => mergedPDF.addPage(page));
+            } catch (e) {
+                this.#dispatchMessage({
+                    errorObject: e,
+                    locationMarker: this.#locationMarkers.loadPDFs,
+                    printParams: { encryptedFile: pdfFile }
+                }) 
+            }
         }
 
         const mergedPDFBytes = await mergedPDF.save();
@@ -271,7 +285,7 @@ export class PDFMerger {
 
         // @TODO ask for user input to continue from here
         // or let the user edit the TOC file first
-        const userWishesToEditManually = readlineSync.keyInYNStrict(this.#messagePrinter.info('continueFromHere'))
+        const userWishesToEditManually = readlineSync.keyInYNStrict(this.#messagePrinter.getMessage('continueFromHere'))
         
         if (userWishesToEditManually) {
             this.#dispatchMessage({
@@ -280,8 +294,6 @@ export class PDFMerger {
             })
         }
 
-        // do real work
-        // see https://github.com/Hopding/pdf-lib/issues/252#issuecomment-566063380
         try {
             this.#mergeAndSavePDF(this.#tocObject)
         } catch (e) {
