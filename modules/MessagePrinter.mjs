@@ -24,24 +24,54 @@ export class MessagePrinter {
         'EN': {
             // errors
             fileCheckError: 'Checking any existing TOC file was unsuccessful. Will be creating a new TOC file.',
-            fileFilterError: 'There was an error looking for file "%s". Removing it from the list.',
+            fileFilterError: 'Cannot find/access file "%s", it will be removed from the TOC file list.',
             directoryNotExistsError: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
             accessError: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...',
             pdfEncryptedError: 'The file "%s" is encrypted.\nThis version of PDF Merger cannot handle encrypted PDF files, so this file will be ignored from the final PDF.',
             unknownError: 'Unknown Error',
 
             // info
-            filteringFiles: 'filtering files, checking: %s',
-            filteringFilePassed: 'item exists, leaving it in',
-            filteringFileMissing: 'item not exists, removing',
-            echoUserProvidedTargetFile: 'You provided %s as the target file name',
-            echoUserProvidedStrings: 'sourceDirectory is: %s, targetFile is: %s',
+            welcome: `Welcome to PDF Merger!
+            This simple CLI will help you merging PDF files.
 
-            tocFileNeedsRewrite: 'TOC file needs rewite',
-            tocFileWritten: 'Successfully created a TOC file with the name: %s',
+            `,
+
+            beginWork: `Let's begin!
+            `,
+            checkingExistingTOCFile: `Looking for existing TOC file...
+            `,
+            existingTOCFileFound: `Existing TOC file found!
+                Now scanning the list of included files...
+            `,
+            filteringFile: 'Checking "%s"',
+            filteringFilePassed: '"%s" is OK.',
+
+            tocFileNeedsRewrite: `The existing TOC file needs to be rewritten.
+            Saving it now...
+            `,
+
+            tocFileWritten: `The TOC file with the name "%s" was successfully saved.
+            `,
             mergedFileWritten: 'The merged PDF file "%s" was successfully generated!',
-            overrideDefaultTargetFile: 'Do you widh to change the name of the generated PDF file?\nIf yes, please provide a filename here, if no, just leave the field as is.',
-            continueFromHere: 'A TOC.json file has been created.\nIt contains the name of the target PDF file and the order of the original PDF files to be merged\nDo you wish to edit the file manually before proceeding?',
+
+            continueFromHere: `
+            OK, everything is ready!
+
+            The TOC file "%s" has been generated/checked.
+
+            You now have the possibility to generate the merged PDF
+            or make edits on the TOC file manually if you wish to change something.
+            When ready with manual editing, simply restart the program, it will
+            use your edited TOC file version.
+            The JSON format of the TOC file can be found here:
+            %s
+            `,
+
+            continueFromHerePrompt: `Do you wish to continue?
+            If [Y]ES, the program will generate the PDF,
+            if [N]O, the program will exit and you can edit the TOC file.
+            Please press: `,
+
             userStopped: 'Feel free to edit the generated JSON file.\nWhen you are ready, start the program again. Bye!',
             needsTranslationLabel: '### TRANSLATE ME ### --> '
         },
@@ -49,11 +79,15 @@ export class MessagePrinter {
         }
     }
 
+    #trimLeadingSpaces(s) {
+        return s.replaceAll(/\n\s{2,}/g, '\n')
+    }
+
     getMessage(messageKey = '') {
         if (this.#messages[this.getLanguage()]?.[messageKey]) {
-            return this.#messages[this.getLanguage()][messageKey]
+            return this.#trimLeadingSpaces(this.#messages[this.getLanguage()][messageKey])
         } else {
-            return this.#messages[this.#getDefaultLanguage()].needsTranslationLabel.concat(this.#messages[this.#getDefaultLanguage()][messageKey])
+            return this.#trimLeadingSpaces(this.#messages[this.#getDefaultLanguage()].needsTranslationLabel.concat(this.#messages[this.#getDefaultLanguage()][messageKey]))
         }
     }
 
@@ -71,10 +105,16 @@ export class MessagePrinter {
         return this.#config.language
     }
 
+    group(messageKey = '', ...parameters) {
+        console.group(this.getMessage(messageKey), ...parameters)
+    }
+    groupEnd() {
+        console.groupEnd()
+    }
     info(messageKey = '', ...parameters) {
-        console.info(this.#config.messageSeparator.info.concat(this.getMessage(messageKey), this.#config.messageSeparator.info), ...parameters)
+        console.info(this.getMessage(messageKey), ...parameters)
     }
     error(messageKey = '', ...parameters) {
-        console.error(this.#config.messageSeparator.error.concat(this.getMessage(messageKey), this.#config.messageSeparator.error), ...parameters)
+        console.error(this.getMessage(messageKey), ...parameters)
     }
 }
