@@ -23,7 +23,8 @@ export class PDFMerger {
         sourceDirectory: '',
     
         // generated files will go in this folder
-        targetDirectory: 'generated',
+        // @TODO is it necessary?
+        targetDirectory: '',
     
         // default file extensions
         extensions: {
@@ -193,9 +194,9 @@ export class PDFMerger {
     }
 
     // create output directory if necessary
-    #createTargetDirectory() {
-        fs.mkdirSync(this.#config.targetDirectory, {recursive: true})
-    }
+    //#createTargetDirectory() {
+    //    fs.mkdirSync(this.#config.targetDirectory, {recursive: true})
+    //}
 
     // write TOC.json file
     #writeTOCFile(fileObject) {
@@ -238,6 +239,8 @@ export class PDFMerger {
 
         // processing command line arguments
         this.#config.sourceDirectory = sourceDirectory ? path.resolve(sourceDirectory) : cwd()
+
+        this.#config.targetDirectory = this.#config.sourceDirectory
 
         this.#config.interactive = interactive
 
@@ -286,7 +289,7 @@ export class PDFMerger {
             this.#tocObject = this.#existingTOCFileContent
         } else {
             try {
-                this.#createTargetDirectory()
+                // this.#createTargetDirectory()
                 this.#tocObject.files = this.#getPDFFilesFromSourceDirectory(this.#config.sourceDirectory)
                 this.#writeTOCFile(this.#tocObject)
             } catch (e) {
