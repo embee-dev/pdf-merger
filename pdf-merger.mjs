@@ -12,7 +12,7 @@ export class PDFMerger {
     // program defaults
     #config = {
         // URL of the documentation for the TOC file format
-        JSONFormatURL: 'https://www.npmjs.com/package/@embee-dev/pdf-merger#TODO',
+        JSONFormatURL: 'https://www.npmjs.com/package/@embee-dev/pdf-merger##tocjson-file-format',
 
         // value used as space for JSON.stringify, when generating the TOC.json file
         JSONSpace: 4,
