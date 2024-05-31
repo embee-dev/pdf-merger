@@ -22,6 +22,7 @@ export class MessagePrinter {
             fileFilterError: 'There was an error looking for file "%s". Removing it from the list.',
             directoryNotExistsError: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
             accessError: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...',
+            pdfEncryptedError: 'The file "%s" is encrypted.\nThis version of PDF Merger cannot handle encrypted PDF files, so this file will be ignored from the final PDF.',
             unknownError: 'Unknown Error',
 
             // info
@@ -43,7 +44,7 @@ export class MessagePrinter {
         }
     }
 
-    #getMessage(messageKey = '') {
+    getMessage(messageKey = '') {
         if (this.#messages[this.getLanguage()]?.[messageKey]) {
             return this.#messages[this.getLanguage()][messageKey]
         } else {
