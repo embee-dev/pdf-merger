@@ -30,7 +30,18 @@ export class MessagePrinter {
             fileFilterError: 'Cannot find/access file "%s", it will be removed from the TOC file list.',
             directoryNotExistsError: 'The provided scanning path (%s) does not exist.\nPlease provide a valid path!\nExiting now...',
             accessError: 'File/Directory operation failed.\nPlease make sure tha application has the necessary rights.\nExiting now...',
-            pdfEncryptedError: 'The file "%s" is encrypted.\nThis version of PDF Merger cannot handle encrypted PDF files, so this file will be ignored from the final PDF.',
+            pdfEncryptedErrorGroup: 'The file "%s" is encrypted.',
+            pdfEncryptedError: `This version of PDF Merger cannot handle encrypted PDF files, so this file will be ignored from the final PDF.`,
+            pdfUnknownErrorGroup: `There was a problem opening "%s".`,
+            pdfUnknownError: ` According to the PDF processor, this file is not a valid PDF file,
+            so this file will be ignored from the final PDF.`,
+            noPDFsError: `
+            Uh-oh! There are no PDF files either in this folder,
+            or in the existing TOC.json file.
+            Please run pdf-merger in a folder containing at least 1 PDF file,
+            or make sure that the existing TOC.json file is correct.
+            pdf-merger will now terminate.
+            `,
             unknownError: 'Unknown Error',
 
             // info
@@ -55,6 +66,7 @@ export class MessagePrinter {
 
             tocFileWritten: `The TOC file with the name "%s" was successfully saved.`,
             mergedFileWritten: `
+            Ready!
             The merged PDF file "%s" was successfully generated!
             Thank you for using PDF Merger!
             
@@ -83,6 +95,15 @@ export class MessagePrinter {
             When you are ready with your edits, start the program again.
             
             `,
+
+            beginMerging: `
+            OK, let's begin merging "%s"
+            [...hard working noises...]`,
+
+            currentlyProcessing: `
+            Processing "%s"...`,
+
+            processingWasSuccessful: `Done!`,
 
             bye: `Bye!`,
             needsTranslationLabel: '### TRANSLATE ME ### --> '
