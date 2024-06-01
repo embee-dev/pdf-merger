@@ -12,7 +12,7 @@ export class PDFMerger {
     // program defaults
     #config = {
         // URL of the documentation for the TOC file format
-        JSONFormatURL: 'https://www.npmjs.com/package/@embee-dev/pdf-merger##tocjson-file-format',
+        JSONFormatURL: 'https://www.npmjs.com/package/@embee-dev/pdf-merger#tocjson-file-format',
 
         // value used as space for JSON.stringify, when generating the TOC.json file
         JSONSpace: 4,
@@ -66,6 +66,7 @@ export class PDFMerger {
         targetFolder: 'TARGET_FOLDER',
         mergePDFs: 'MERGE_PDFS',
         loadPDFs: 'LOAD_PFDS',
+        noPDFsInFolder: 'NO_PDFS_IN_FOLDER',
 
         userStopped: 'USER_STOPPED'
     }
@@ -78,6 +79,9 @@ export class PDFMerger {
         printParams = null
     } = {}) {
         switch (locationMarker) {
+            case this.#locationMarkers.noPDFsInFolder:
+                this.#messagePrinter.error('noPDFsError')
+                break
             case this.#locationMarkers.fileCheck:
                 switch (errorObject.code) {
                     case 'ENOENT':
@@ -126,7 +130,13 @@ export class PDFMerger {
                 break
             case this.#locationMarkers.loadPDFs:
                 if (errorObject.message.indexOf('encrypted') !== -1) {
-                        this.#messagePrinter.error('pdfEncryptedError', printParams.encryptedFile)
+                    this.#messagePrinter.group('pdfEncryptedErrorGroup', printParams.faultyFile)
+                    this.#messagePrinter.group('pdfEncryptedError')
+                    this.#messagePrinter.groupEnd()
+                } else {
+                    this.#messagePrinter.group('pdfUnknownErrorGroup', printParams.faultyFile)
+                    this.#messagePrinter.error('pdfUnknownError')
+                    this.#messagePrinter.groupEnd()
                 }
                 break
             case this.#locationMarkers.userStopped:
@@ -209,15 +219,20 @@ export class PDFMerger {
 
         for (let pdfFile of TOCObject.files) {
             try {
+                this.#messagePrinter.group('currentlyProcessing', pdfFile)
                 const pdfContent = await PDFDocument.load(fs.readFileSync(path.join(this.#config.sourceDirectory, pdfFile)));
                 const pdfPages = await mergedPDF.copyPages(pdfContent, pdfContent.getPageIndices());
                 pdfPages.forEach((page) => mergedPDF.addPage(page));
+
+                this.#messagePrinter.info('processingWasSuccessful')
             } catch (e) {
                 this.#dispatchMessage({
                     errorObject: e,
                     locationMarker: this.#locationMarkers.loadPDFs,
-                    printParams: { encryptedFile: pdfFile }
+                    printParams: { faultyFile: pdfFile }
                 }) 
+            } finally {
+                this.#messagePrinter.groupEnd()
             }
         }
 
@@ -302,6 +317,13 @@ export class PDFMerger {
             
         }
 
+        if (!this.#tocObject.files.length) {
+            this.#dispatchMessage({
+                locationMarker: this.#locationMarkers.noPDFsInFolder,
+                terminateProgram: true
+            })
+        }
+
         // @TODO ask for user input to continue from here
         // or let the user edit the TOC file first
         this.#messagePrinter.info('continueFromHere', this.#tocObject.tocFileName, this.#config.JSONFormatURL)
@@ -315,6 +337,7 @@ export class PDFMerger {
         }
 
         try {
+            this.#messagePrinter.info('beginMerging', this.#tocObject.targetFile)
             this.#mergeAndSavePDF(this.#tocObject)
         } catch (e) {
             this.#dispatchMessage({
