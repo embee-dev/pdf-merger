@@ -97,7 +97,6 @@ Bye!
 And you are done! You can find the generated/merged PDF in the same folder.
 
 ## Known Bugs
-- **Empty folders**: at the moment `pdf-merger` expects to be run in a folder that contains valid PDF files. Running it in folder that do not have PDF files or are not valid PDFs will have unexpected side effects. This bug is planned to be fixed soon.
 - **Encrypted PDF files**: `pdf-merger` cannot handle encrypted PDF files. If you include such a file, it will be dismissed/ignored when creating the merged PDF file.
 
 ## Planned Features

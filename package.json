@@ -3,6 +3,7 @@
   "version": "1.2.0",
   "type": "module",
   "description": "PDF Merger CLI for merging multiple PDF files.",
+  "keywords": ["pdf", "merge", "merging", "cli", "standalone"],
   "main": "index.mjs",
   "author": "embee-dev (https://github.com/embee-dev)",
   "repository": {
