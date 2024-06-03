@@ -96,6 +96,14 @@ Bye!
 
 And you are done! You can find the generated/merged PDF in the same folder.
 
+## CHANGELOG
+- `1.2.2` add error handling for unsuccessful file writing operations, add this CHANGELOG block to README.md
+- `1.2.1` minor fix in README.md, add keywords to `package.json` file
+- `1.2.0`
+    - During merging, add extra scanning of all PDF files in the `TOC.json` file and discard invalid files.
+    - Alert the user when `pdf-merger` is started in folder with no PDF files.
+    - Add more, better formatted user messages.
+
 ## Known Bugs
 - **Encrypted PDF files**: `pdf-merger` cannot handle encrypted PDF files. If you include such a file, it will be dismissed/ignored when creating the merged PDF file.
 

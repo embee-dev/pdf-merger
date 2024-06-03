@@ -35,6 +35,17 @@ export class MessagePrinter {
             pdfUnknownErrorGroup: `There was a problem opening "%s".`,
             pdfUnknownError: ` According to the PDF processor, this file is not a valid PDF file,
             so this file will be ignored from the final PDF.`,
+            writeTOCFileError: `
+            Uh-oh! Creating/Writing "%s" was unsuccessful.
+            Please check that pdf-merger is provided the necessary rights for this operation!
+            pdf-merger will now terminate.            
+            `,
+            writeMergedPDFError: `
+            Uh-oh! Creating/Writing "%s" was unsuccessful.
+            Please check that pdf-merger is provided the necessary rights for this operation,
+            or the target file name provided in the TOC.json file is a valid filename!
+            pdf-merger will now terminate.
+            `,
             noPDFsError: `
             Uh-oh! There are no PDF files either in this folder,
             or in the existing TOC.json file.
