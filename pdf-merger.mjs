@@ -67,6 +67,8 @@ export class PDFMerger {
         mergePDFs: 'MERGE_PDFS',
         loadPDFs: 'LOAD_PFDS',
         noPDFsInFolder: 'NO_PDFS_IN_FOLDER',
+        writeTOCFile: 'WRITE_TOC_FILE',
+        writeMergedPDF: 'WRITE_MERGED_PDF',
 
         userStopped: 'USER_STOPPED'
     }
@@ -79,6 +81,12 @@ export class PDFMerger {
         printParams = null
     } = {}) {
         switch (locationMarker) {
+            case this.#locationMarkers.writeTOCFile:
+                this.#messagePrinter.error('writeTOCFileError', printParams.TOCFile)
+                break
+            case this.#locationMarkers.writeMergedPDF:
+                this.#messagePrinter.error('writeMergedPDFError', printParams.targetFile)
+                break
             case this.#locationMarkers.noPDFsInFolder:
                 this.#messagePrinter.error('noPDFsError')
                 break
@@ -210,7 +218,16 @@ export class PDFMerger {
 
     // write TOC.json file
     #writeTOCFile(fileObject) {
-        fs.writeFileSync(this.#TOCFilePath, JSON.stringify(fileObject, null, this.#config.JSONSpace), { flag: 'w' })
+        try {
+            fs.writeFileSync(this.#TOCFilePath, JSON.stringify(fileObject, null, this.#config.JSONSpace), { flag: 'w' })
+        } catch (e) {
+            this.#dispatchMessage({
+                errorObject: e,
+                locationMarker: this.#locationMarkers.writeTOCFile,
+                printParams: { TOCFile: this.#tocObject.tocFileName },
+                terminateProgram: true
+            })
+        }
         this.#messagePrinter.info('tocFileWritten', this.#tocObject.tocFileName)
     }
 
@@ -237,9 +254,16 @@ export class PDFMerger {
         }
 
         const mergedPDFBytes = await mergedPDF.save();
-        fs.writeFileSync(path.join(this.#config.targetDirectory, TOCObject.targetFile), mergedPDFBytes, { flag: 'w' })
-        this.#messagePrinter.info('mergedFileWritten', TOCObject.targetFile)
-        this.#messagePrinter.info('bye')
+        try {
+            fs.writeFileSync(path.join(this.#config.targetDirectory, TOCObject.targetFile), mergedPDFBytes, { flag: 'w' })
+        } catch (e) {
+            this.#dispatchMessage({
+                errorObject: e,
+                locationMarker: this.#locationMarkers.writeMergedPDF,
+                printParams: { targetFile: TOCObject.targetFile },
+                terminateProgram: true
+            })
+        }
     }
 
     constructor({
@@ -269,7 +293,7 @@ export class PDFMerger {
     }
 
     // the main program starts here
-    start() {
+    async start() {
 
         this.#messagePrinter.info('beginWork')
         
@@ -338,7 +362,9 @@ export class PDFMerger {
 
         try {
             this.#messagePrinter.info('beginMerging', this.#tocObject.targetFile)
-            this.#mergeAndSavePDF(this.#tocObject)
+            await this.#mergeAndSavePDF(this.#tocObject)
+            this.#messagePrinter.info('mergedFileWritten', this.#tocObject.targetFile)
+            this.#messagePrinter.info('bye')
         } catch (e) {
             this.#dispatchMessage({
                 errorObject: e,
