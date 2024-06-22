@@ -97,6 +97,7 @@ Bye!
 And you are done! You can find the generated/merged PDF in the same folder.
 
 ## CHANGELOG
+- `1.2.3` minor code improvement, `pdf-merger` now exists when run in an empty folder (doesn't generate any unnecessary TOC.json files)
 - `1.2.2` add error handling for unsuccessful file writing operations, add this CHANGELOG block to README.md
 - `1.2.1` minor fix in README.md, add keywords to `package.json` file
 - `1.2.0`

@@ -61,16 +61,16 @@ export class PDFMerger {
 
     // object to tag locations of different messages
     #locationMarkers = {
-        fileCheck: 'TOC_FILE_CHECK',
-        fileFilter: 'TOC_FILE_FILTER',
-        targetFolder: 'TARGET_FOLDER',
-        mergePDFs: 'MERGE_PDFS',
-        loadPDFs: 'LOAD_PFDS',
-        noPDFsInFolder: 'NO_PDFS_IN_FOLDER',
-        writeTOCFile: 'WRITE_TOC_FILE',
-        writeMergedPDF: 'WRITE_MERGED_PDF',
+        fileCheck: Symbol('TOC_FILE_CHECK'),
+        fileFilter: Symbol('TOC_FILE_FILTER'),
+        targetFolder: Symbol('TARGET_FOLDER'),
+        mergePDFs: Symbol('MERGE_PDFS'),
+        loadPDFs: Symbol('LOAD_PFDS'),
+        noPDFsInFolder: Symbol('NO_PDFS_IN_FOLDER'),
+        writeTOCFile: Symbol('WRITE_TOC_FILE'),
+        writeMergedPDF: Symbol('WRITE_MERGED_PDF'),
 
-        userStopped: 'USER_STOPPED'
+        userStopped: Symbol('USER_STOPPED')
     }
 
     // prints various messages in case of any errors
@@ -330,6 +330,14 @@ export class PDFMerger {
             try {
                 // this.#createTargetDirectory()
                 this.#tocObject.files = this.#getPDFFilesFromSourceDirectory(this.#config.sourceDirectory)
+                
+                if (!this.#tocObject.files.length) {
+                    this.#dispatchMessage({
+                        locationMarker: this.#locationMarkers.noPDFsInFolder,
+                        terminateProgram: true
+                    })
+                }
+                
                 this.#writeTOCFile(this.#tocObject)
             } catch (e) {
                 this.#dispatchMessage({
@@ -339,13 +347,6 @@ export class PDFMerger {
                 })
             }
             
-        }
-
-        if (!this.#tocObject.files.length) {
-            this.#dispatchMessage({
-                locationMarker: this.#locationMarkers.noPDFsInFolder,
-                terminateProgram: true
-            })
         }
 
         // @TODO ask for user input to continue from here
